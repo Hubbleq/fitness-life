@@ -1,0 +1,34 @@
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    env_name = os.getenv("ENVIRONMENT", "development")
+    if env_name == "development":
+        DATABASE_URL = "sqlite:///./dev.db"
+    else:
+        raise RuntimeError("DATABASE_URL is not set")
+
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    if "supabase.co" in DATABASE_URL or os.getenv("DATABASE_SSL", "").lower() in {"1", "true", "yes"}:
+        connect_args = {"sslmode": "require"}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
