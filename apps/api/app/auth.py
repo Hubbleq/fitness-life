@@ -15,8 +15,12 @@ if not JWT_SECRET:
         JWT_SECRET = "dev-secret"
     else:
         raise RuntimeError("JWT_SECRET is not set")
+
+if ENVIRONMENT != "development" and len(JWT_SECRET) < 32:
+    raise RuntimeError("JWT_SECRET must be at least 32 characters in production")
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
 security = HTTPBearer()
