@@ -33,7 +33,24 @@ pip install -e .
 uvicorn app.main:app --reload
 ```
 
-Se você não tiver PostgreSQL configurado, o backend usa SQLite local automaticamente (arquivo `dev.db`).
+Se voce nao tiver PostgreSQL configurado, o backend usa SQLite local automaticamente (arquivo `dev.db`).
+
+## Usando Supabase como banco
+
+O Supabase entra apenas como Postgres gerenciado. A autenticacao continua no FastAPI.
+
+1. Crie um projeto no Supabase.
+2. Copie a connection string do banco (Settings > Database).
+3. Configure as variaveis no `.env`:
+
+```bash
+DATABASE_URL=postgresql+psycopg2://postgres:YOUR_PASSWORD@db.xxxxx.supabase.co:5432/postgres
+DATABASE_SSL=true
+```
+
+4. Suba a API normalmente. As tabelas sao criadas no startup pela `Base.metadata.create_all`.
+
+Dica: nao coloque o `service_role` no frontend. A API deve ser a unica responsavel por acessar o banco.
 
 ## Como rodar o frontend (Web)
 
