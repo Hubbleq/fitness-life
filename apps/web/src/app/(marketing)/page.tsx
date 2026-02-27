@@ -53,7 +53,7 @@ export default function MarketingPage() {
             <line x1="8.58" y1="11.41" x2="11.41" y2="8.58" />
             <line x1="12.58" y1="15.41" x2="15.41" y2="12.58" />
           </svg>
-          <span style={{ fontSize: 18, fontWeight: 800 }}>Fitness <span style={{ color: "white" }}>Life</span></span>
+          <span style={{ fontSize: 18, fontWeight: 800 }}>Fitness <span style={{ color: "white" }}>Hub</span></span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>Entrar</Link>
@@ -66,7 +66,7 @@ export default function MarketingPage() {
         {/* HERO SECTION */}
         <section className="hero-grid-m" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center', marginBottom: 120 }}>
           <div>
-            <span className="section-eyebrow">FITNESS LIFE</span>
+            <span className="section-eyebrow">FITNESS HUB</span>
             <h1 className="hero-title-m">
               Treino e dieta organizados para você manter o <span>foco todos os dias.</span>
             </h1>
@@ -239,10 +239,10 @@ export default function MarketingPage() {
             <line x1="8.58" y1="11.41" x2="11.41" y2="8.58" />
             <line x1="12.58" y1="15.41" x2="15.41" y2="12.58" />
           </svg>
-          <span style={{ fontSize: 13, fontWeight: 700 }}>Fitness Life</span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Fitness Hub</span>
         </div>
         <div style={{ fontSize: 11, color: '#71717a' }}>
-          &copy; 2026 Fitness Life. Todos os direitos reservados.
+          &copy; 2026 Fitness Hub. Todos os direitos reservados.
         </div>
       </footer>
     </div>

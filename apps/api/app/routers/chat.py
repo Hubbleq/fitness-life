@@ -119,10 +119,10 @@ async def chat_groq(
                     "content": req.message,
                 }
             ],
-            # Usando o modelo Llama 3 8B (muito rápido e excelente para respostas curtas)
-            model="llama-3.1-8b-instant",
+            # Usando o modelo Llama 3.3 70B (muito mais inteligente e preciso)
+            model="llama-3.3-70b-versatile",
             temperature=0.7,
-            max_tokens=256,
+            max_tokens=1024,
             tools=tools
         )
         

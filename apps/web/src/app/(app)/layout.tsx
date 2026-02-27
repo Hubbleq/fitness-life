@@ -159,10 +159,16 @@ export default function AppLayout({
         <aside className={sidebarOpen ? "app-sidebar" : "app-sidebar collapsed"}>
           <div className="sidebar-header">
             <div className="brand" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--primary)">
-                <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43 1.43-1.43L8.43 11 12 14.57 8.43 18.14 7 16.71 5.57 18.14 7.71 20.28 9.14 21.71 10.57 20.28l1.43 1.43 1.43-1.43-1.43-1.43L15.57 15.28l3.57 3.57 1.43-1.43-1.43-1.43z" />
-              </svg>
-              Fitness <span>Hub</span>
+              {sidebarOpen ? (
+                <>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--primary)">
+                    <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43 1.43-1.43L8.43 11 12 14.57 8.43 18.14 7 16.71 5.57 18.14 7.71 20.28 9.14 21.71 10.57 20.28l1.43 1.43 1.43-1.43-1.43-1.43L15.57 15.28l3.57 3.57 1.43-1.43-1.43-1.43z" />
+                  </svg>
+                  Fitness <span>Hub</span>
+                </>
+              ) : (
+                <span style={{ color: "var(--primary)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.5px" }}>FH</span>
+              )}
             </div>
             <button
               className="sidebar-toggle"

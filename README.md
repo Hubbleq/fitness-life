@@ -1,4 +1,4 @@
-# 🏋️ Fitness Life
+# 🏋️ Fitness Hub
 
 Aplicativo completo para organizar sua rotina fitness em um só lugar. Registre treinos, refeições, metas e acompanhe sua evolução com suporte de IA.
 

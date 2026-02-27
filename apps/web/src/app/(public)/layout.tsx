@@ -25,7 +25,7 @@ export default function PublicLayout({
             </svg>
           </div>
           <div className="auth-logo-text" style={{ fontSize: 32, marginBottom: 8 }}>
-            Fitness <span style={{ color: "var(--primary)" }}>Life</span>
+            Fitness <span style={{ color: "var(--primary)" }}>Hub</span>
           </div>
         </div>
         <section className="auth-form">{children}</section>
