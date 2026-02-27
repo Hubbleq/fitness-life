@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, authHeader, getToken } from "../../../lib/api";
 
-type Meal = { id: number; date: string; name: string; protein: number };
+type Meal = { id: number; date: string; name: string; protein: number; calories: number };
 
 export default function MealsPage() {
   const router = useRouter();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [name, setName] = useState("");
   const [protein, setProtein] = useState(0);
+  const [calories, setCalories] = useState(0);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -35,14 +36,14 @@ export default function MealsPage() {
     loadMeals();
   }, [router]);
 
-  const resetForm = () => { setEditingId(null); setName(""); setProtein(0); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setName(""); setProtein(0); setCalories(0); setShowForm(false); };
 
   const handleCreate = async () => {
     try {
       const token = getToken();
       await apiFetch("/fitness/meals", {
         method: "POST", headers: authHeader(token),
-        body: JSON.stringify({ date, name, protein: Number(protein) }),
+        body: JSON.stringify({ date, name, protein: Number(protein), calories: Number(calories) }),
       });
       setMessage("Refeição criada com sucesso!");
       setTimeout(() => setMessage(""), 3000);
@@ -52,7 +53,7 @@ export default function MealsPage() {
   };
 
   const handleEdit = (meal: Meal) => {
-    setEditingId(meal.id); setDate(meal.date); setName(meal.name); setProtein(meal.protein); setShowForm(true); setMessage("");
+    setEditingId(meal.id); setDate(meal.date); setName(meal.name); setProtein(meal.protein); setCalories(meal.calories || 0); setShowForm(true); setMessage("");
   };
 
   const handleUpdate = async () => {
@@ -61,7 +62,7 @@ export default function MealsPage() {
       const token = getToken();
       await apiFetch(`/fitness/meals/${editingId}`, {
         method: "PUT", headers: authHeader(token),
-        body: JSON.stringify({ date, name, protein: Number(protein) }),
+        body: JSON.stringify({ date, name, protein: Number(protein), calories: Number(calories) }),
       });
       setMessage("Refeição atualizada com sucesso!");
       setTimeout(() => setMessage(""), 3000);
@@ -102,6 +103,7 @@ export default function MealsPage() {
         setDate(data.date);
         setName(data.name);
         setProtein(data.protein);
+        setCalories(data.calories || Math.round(data.protein * 4 + 200));
         setShowForm(true);
       }, 1500);
 
@@ -112,7 +114,7 @@ export default function MealsPage() {
   };
 
   const totalProtein = meals.reduce((sum, m) => sum + m.protein, 0);
-  const totalCalories = Math.round(totalProtein * 4 + meals.length * 350);
+  const totalCalories = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
 
   return (
     <main className="fade-in">
@@ -185,7 +187,8 @@ export default function MealsPage() {
           <div className="form-grid">
             <div><label>Data</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
             <div><label>Nome</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Café da manhã" /></div>
-            <div><label>Proteína (g)</label><input type="number" value={protein} onChange={(e) => setProtein(Number(e.target.value))} /></div>
+            <div><label>Calorias (kcal)</label><input type="number" value={calories === 0 ? "" : calories} onChange={(e) => setCalories(Number(e.target.value))} /></div>
+            <div><label>Proteína (g)</label><input type="number" value={protein === 0 ? "" : protein} onChange={(e) => setProtein(Number(e.target.value))} /></div>
           </div>
           <div className="form-actions" style={{ display: "flex", gap: 10 }}>
             {editingId ? (
@@ -217,7 +220,7 @@ export default function MealsPage() {
             </div>
             <div className="meal-info">
               <div className="meal-name">{meal.name || "Refeição"}</div>
-              <div className="meal-meta">{meal.date} · {meal.protein}g proteína</div>
+              <div className="meal-meta">{meal.date} · {meal.calories} kcal · {meal.protein}g proteína</div>
             </div>
             <button className="btn-ghost" onClick={() => handleEdit(meal)}>Editar</button>
           </div>

@@ -153,6 +153,7 @@ def update_meal(
     meal.date = meal_in.date
     meal.name = meal_in.name
     meal.protein = meal_in.protein
+    meal.calories = meal_in.calories
     db.commit()
     db.refresh(meal)
     return meal
@@ -306,6 +307,12 @@ def summary(
         .scalar()
     )
 
+    total_calories = (
+        db.query(func.coalesce(func.sum(models.Meal.calories), 0))
+        .filter(models.Meal.user_id == current_user.id, models.Meal.date == date)
+        .scalar()
+    )
+
     total_water = (
         db.query(func.coalesce(func.sum(models.WaterLog.amount_ml), 0))
         .filter(models.WaterLog.user_id == current_user.id, models.WaterLog.date == date)
@@ -314,6 +321,8 @@ def summary(
 
     return schemas.SummaryOut(
         date=date,
+        calories_goal=goal.calories,
+        calories_consumed=int(total_calories),
         protein_goal=goal.protein,
         protein_consumed=int(total_protein),
         water_goal=goal.water_ml,
@@ -380,6 +389,26 @@ def weekly_summary(
     workouts_count = len(workouts)
     total_minutes = sum(w.duration for w in workouts)
 
+    meals = (
+        db.query(models.Meal)
+        .filter(
+            models.Meal.user_id == current_user.id,
+            models.Meal.date >= week_start,
+            models.Meal.date <= week_end,
+        )
+        .all()
+    )
+
+    waters = (
+        db.query(models.WaterLog)
+        .filter(
+            models.WaterLog.user_id == current_user.id,
+            models.WaterLog.date >= week_start,
+            models.WaterLog.date <= week_end,
+        )
+        .all()
+    )
+
     profile = db.query(models.Profile).filter(models.Profile.user_id == current_user.id).first()
     if not is_profile_complete(profile):
         raise HTTPException(status_code=400, detail="Preencha o perfil primeiro")
@@ -392,7 +421,21 @@ def weekly_summary(
         current_date = week_start + timedelta(days=i)
         daily_workouts = [w for w in workouts if w.date == current_date]
         daily_minutes = sum(w.duration for w in daily_workouts)
-        chart_data.append({"date": current_date, "minutes": daily_minutes})
+        
+        daily_meals = [m for m in meals if m.date == current_date]
+        daily_cals = sum(m.calories for m in daily_meals)
+        daily_prot = sum(m.protein for m in daily_meals)
+
+        daily_waters = [wt for wt in waters if wt.date == current_date]
+        daily_water_ml = sum(wt.amount_ml for wt in daily_waters)
+
+        chart_data.append({
+            "date": current_date, 
+            "minutes": daily_minutes,
+            "calories": daily_cals,
+            "protein": daily_prot,
+            "water_ml": daily_water_ml,
+        })
 
     return schemas.WeeklySummaryOut(
         week_start=week_start,

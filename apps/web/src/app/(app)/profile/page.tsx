@@ -126,7 +126,8 @@ export default function ProfilePage() {
             style={{
               width: 100, height: 100, borderRadius: "50%", cursor: "pointer",
               overflow: "hidden", position: "relative", border: "2px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
             }}
           >
             <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" style={{ display: "none" }} />

@@ -65,6 +65,7 @@ class MealBase(BaseModel):
     date: date
     name: str
     protein: int
+    calories: int = 0
 
     @field_validator("name")
     @classmethod
@@ -79,6 +80,13 @@ class MealBase(BaseModel):
     def validate_protein(cls, value: int):
         if value < 0:
             raise ValueError("A proteina nao pode ser negativa")
+        return value
+
+    @field_validator("calories")
+    @classmethod
+    def validate_calories(cls, value: int):
+        if value < 0:
+            raise ValueError("As calorias não podem ser negativas")
         return value
 
 
@@ -138,6 +146,8 @@ class WorkoutOut(WorkoutBase):
 
 class SummaryOut(BaseModel):
     date: date
+    calories_goal: int
+    calories_consumed: int
     protein_goal: int
     protein_consumed: int
     water_goal: int | None = None
@@ -287,9 +297,12 @@ class RecommendationOut(BaseModel):
     weekly_workouts_goal: int
 
 
-class DailyWorkoutStat(BaseModel):
+class DailyStat(BaseModel):
     date: date
     minutes: int
+    calories: int
+    protein: int
+    water_ml: int
 
 class WeeklySummaryOut(BaseModel):
     week_start: date
@@ -297,4 +310,4 @@ class WeeklySummaryOut(BaseModel):
     workouts_count: int
     workouts_goal: int
     total_minutes: int
-    chart_data: list[DailyWorkoutStat]
+    chart_data: list[DailyStat]

@@ -1686,25 +1686,29 @@ button:active {
   position: absolute;
   right: 0;
   bottom: 64px;
-  width: 380px;
-  height: min(72vh, 520px);
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
+  width: calc(100vw - 32px);
+  max-width: 420px;
+  height: min(75vh, 600px);
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.05);
   display: flex;
   flex-direction: column;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(12px) scale(0.98);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform-origin: bottom right;
+  transform: scale(0.9) translateY(10px);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 .chat-panel.open {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: scale(1) translateY(0);
 }
 
 .chat-header {
@@ -1771,31 +1775,33 @@ button:active {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #0f0f0f;
+  background: transparent;
 }
 
 .chat-bubble {
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.45;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
   word-wrap: break-word;
   white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chat-bubble.bot {
-  background: #1a1a1a;
+  background: rgba(239, 68, 68, 0.1);
   color: var(--text);
   align-self: flex-start;
   border-bottom-left-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 .chat-bubble.user {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--text);
   align-self: flex-end;
   border-bottom-right-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Prompt Pills */
@@ -1809,19 +1815,21 @@ button:active {
 }
 
 .chat-prompt-pill {
-  padding: 6px 12px;
-  border-radius: 100px;
+  padding: 8px 14px;
+  border-radius: 20px;
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--text-muted);
   font-size: 11px;
   background: rgba(239, 68, 68, 0.05);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .chat-prompt-pill:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--text);
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
 }
 
 /* Typing Animation */
@@ -2387,7 +2395,7 @@ main>div {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 8px;
+  padding: 20px 12px;
   background: rgba(17, 17, 17, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -2422,6 +2430,7 @@ main>div {
   place-items: center;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.1);
+  margin-bottom: 12px;
 }
 
 .quick-action-card:hover .quick-action-icon {
@@ -2435,13 +2444,16 @@ main>div {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
 }
 
 .quick-action-label {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.2px;
+  line-height: 1.2;
 }
 
 .quick-action-sub {

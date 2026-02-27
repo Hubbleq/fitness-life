@@ -50,9 +50,10 @@ class Meal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    date = Column(Date, nullable=False)
-    name = Column(String, nullable=False)
-    protein = Column(Integer, nullable=False)
+    date = Column(Date, index=True)
+    name = Column(String, index=True)
+    protein = Column(Integer)
+    calories = Column(Integer, default=0)
 
     user = relationship("User", back_populates="meals")
 
