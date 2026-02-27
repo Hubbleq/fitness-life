@@ -68,5 +68,12 @@ export function authHeader(token: string | null): Record<string, string> {
 
 export function getToken() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+  // Prioritize session storage, fallback to persistent local storage
+  return sessionStorage.getItem("token") || localStorage.getItem("token");
+}
+
+export function removeToken() {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem("token");
+  localStorage.removeItem("token");
 }
