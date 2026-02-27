@@ -48,6 +48,39 @@ def register(request: Request, user_in: schemas.UserRegister, db: Session = Depe
         db.add(profile)
         db.commit()
 
+        # Calcula agua
+        age = user_in.age
+        weight = user_in.weight_kg
+        if age <= 30:
+            water_ml = int(40 * weight)
+        elif age <= 55:
+            water_ml = int(35 * weight)
+        elif age <= 65:
+            water_ml = int(30 * weight)
+        else:
+            water_ml = int(25 * weight)
+            
+        # Calcula calorias e proteina
+        if user_in.sex == "male":
+            bmr = 88.362 + (13.397 * weight) + (4.799 * user_in.height_cm) - (5.677 * age)
+        else:
+            bmr = 447.593 + (9.247 * weight) + (3.098 * user_in.height_cm) - (4.330 * age)
+            
+        act_mult = {"sedentary": 1.2, "light": 1.375, "moderate": 1.55, "active": 1.725, "athlete": 1.9}
+        goal_mult = {"cut": 0.8, "maintain": 1.0, "bulk": 1.15}
+        
+        calories = int(bmr * act_mult.get(user_in.activity_level, 1.2) * goal_mult.get(user_in.goal, 1.0))
+        protein = int(weight * (1.6 if user_in.goal == "maintain" else 2.0))
+
+        goal_obj = models.Goal(
+            user_id=user.id,
+            calories=calories,
+            protein=protein,
+            water_ml=water_ml
+        )
+        db.add(goal_obj)
+        db.commit()
+
     token = create_access_token(user.email)
     return {"access_token": token, "token_type": "bearer"}
 

@@ -29,41 +29,41 @@ export default function LoginPage() {
 
   return (
     <main className="auth-main">
-      <div className="auth-header">
-        <span className="eyebrow">Bem-vindo de volta</span>
-        <h1>Entrar</h1>
-        <p>Acesse seus treinos, metas e refeições em um só lugar.</p>
-        <img
-          className="auth-illustration"
-          src="/images/login-illustration.png"
-          alt="Login Motion Lab"
-        />
-      </div>
+      <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+        Bem-vindo de volta!
+      </p>
+
       <form onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <div>
-            <label>Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div>
-            <label>Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        <div>
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
-        <button type="submit">Entrar</button>
+        <div>
+          <label>Senha</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <button type="submit" style={{ width: "100%", marginTop: 8 }}>
+          Entrar →
+        </button>
       </form>
-      <div className="cta-row">
-        <a className="btn secondary" href="/register">
-          Criar conta
+
+      <p style={{ textAlign: "center", fontSize: 14, marginTop: 12 }}>
+        Não tem conta?{" "}
+        <a className="text-link" href="/register">
+          Cadastre-se
         </a>
-        <a className="btn ghost" href="/">
-          Voltar para a home
-        </a>
-      </div>
+      </p>
+
       {message ? <p className="form-message">{message}</p> : null}
     </main>
   );

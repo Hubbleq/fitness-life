@@ -19,29 +19,17 @@ const goalOptions = [
 ];
 
 function calculateBmr(sex: string, weightKg: number, heightCm: number, age: number) {
-  if (sex === "female") {
-    return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
-  }
+  if (sex === "female") return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
   return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5);
 }
 
 function activityMultiplier(level: string) {
-  const map: Record<string, number> = {
-    sedentary: 1.2,
-    light: 1.375,
-    moderate: 1.55,
-    active: 1.725,
-    athlete: 1.9,
-  };
+  const map: Record<string, number> = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, athlete: 1.9 };
   return map[level] ?? 1.2;
 }
 
 function goalFactor(goal: string) {
-  const map: Record<string, number> = {
-    cut: 0.8,
-    maintain: 1.0,
-    bulk: 1.1,
-  };
+  const map: Record<string, number> = { cut: 0.8, maintain: 1.0, bulk: 1.1 };
   return map[goal] ?? 1.0;
 }
 
@@ -59,59 +47,34 @@ export default function ProfilePage() {
   const bmr = calculateBmr(sex, Number(weightKg), Number(heightCm), Number(age));
   const caloriesTarget = Math.round(bmr * activityMultiplier(activity) * goalFactor(goal));
   const proteinTarget = Math.round(Number(weightKg) * (goal === "maintain" ? 1.6 : 2.0));
-  const goalLabel = goalOptions.find((opt) => opt.value === goal)?.label ?? "";
+  const goalLabel = goalOptions.find((o) => o.value === goal)?.label ?? "";
 
   useEffect(() => {
     const token = getToken();
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!token) { router.push("/login"); return; }
     const load = async () => {
       try {
-        const data = await apiFetch("/fitness/profile", {
-          headers: authHeader(token),
-        });
+        const data = await apiFetch("/fitness/profile", { headers: authHeader(token) });
         if (data) {
-          setName(data.name || "");
-          setSex(data.sex);
-          setAge(data.age);
-          setHeightCm(data.height_cm);
-          setWeightKg(data.weight_kg);
-          setActivity(data.activity_level);
-          setGoal(data.goal);
+          setName(data.name || ""); setSex(data.sex); setAge(data.age);
+          setHeightCm(data.height_cm); setWeightKg(data.weight_kg);
+          setActivity(data.activity_level); setGoal(data.goal);
         }
-      } catch (err: any) {
-        setMessage(err.message || "Erro ao carregar perfil");
-      }
+      } catch (err: any) { setMessage(err.message || "Erro ao carregar perfil"); }
     };
     load();
   }, [router]);
 
   const handleSave = async () => {
+    if (!name.trim()) { setMessage("Informe seu nome"); return; }
     try {
-      if (!name.trim()) {
-        setMessage("Informe seu nome completo");
-        return;
-      }
       const token = getToken();
       await apiFetch("/fitness/profile", {
-        method: "PUT",
-        headers: authHeader(token),
-        body: JSON.stringify({
-          name,
-          sex,
-          age: Number(age),
-          height_cm: Number(heightCm),
-          weight_kg: Number(weightKg),
-          activity_level: activity,
-          goal,
-        }),
+        method: "PUT", headers: authHeader(token),
+        body: JSON.stringify({ name, sex, age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg), activity_level: activity, goal }),
       });
       setMessage("Perfil salvo com sucesso");
-    } catch (err: any) {
-      setMessage(err.message || "Erro ao salvar perfil");
-    }
+    } catch (err: any) { setMessage(err.message || "Erro ao salvar perfil"); }
   };
 
   return (
@@ -128,10 +91,7 @@ export default function ProfilePage() {
         <div className="form-section">
           <h3>Dados pessoais</h3>
           <div className="form-grid">
-            <div>
-              <label>Nome e sobrenome</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
+            <div><label>Nome</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div>
               <label>Sexo</label>
               <select value={sex} onChange={(e) => setSex(e.target.value)}>
@@ -139,48 +99,19 @@ export default function ProfilePage() {
                 <option value="female">Feminino</option>
               </select>
             </div>
+            <div><label>Idade</label><input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} /></div>
+            <div><label>Altura (cm)</label><input type="number" value={heightCm} onChange={(e) => setHeightCm(Number(e.target.value))} /></div>
+            <div><label>Peso (kg)</label><input type="number" value={weightKg} onChange={(e) => setWeightKg(Number(e.target.value))} /></div>
             <div>
-              <label>Idade</label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label>Altura (cm)</label>
-              <input
-                type="number"
-                value={heightCm}
-                onChange={(e) => setHeightCm(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label>Peso (kg)</label>
-              <input
-                type="number"
-                value={weightKg}
-                onChange={(e) => setWeightKg(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label>Nível de atividade</label>
+              <label>Atividade</label>
               <select value={activity} onChange={(e) => setActivity(e.target.value)}>
-                {activityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {activityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
               <label>Objetivo</label>
               <select value={goal} onChange={(e) => setGoal(e.target.value)}>
-                {goalOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {goalOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
@@ -193,33 +124,15 @@ export default function ProfilePage() {
         <div className="surface-card highlight-card">
           <strong>Resumo do plano</strong>
           <ul className="summary-list">
-            <li className="summary-item">
-              <span>Objetivo</span>
-              <strong>{goalLabel}</strong>
-            </li>
-            <li className="summary-item">
-              <span>BMR estimado</span>
-              <strong>{bmr} kcal</strong>
-            </li>
-            <li className="summary-item">
-              <span>Meta diária</span>
-              <strong>{caloriesTarget} kcal</strong>
-            </li>
-            <li className="summary-item">
-              <span>Proteína sugerida</span>
-              <strong>{proteinTarget} g</strong>
-            </li>
+            <li className="summary-item"><span>Objetivo</span><strong>{goalLabel}</strong></li>
+            <li className="summary-item"><span>BMR estimado</span><strong>{bmr} kcal</strong></li>
+            <li className="summary-item"><span>Meta diária</span><strong>{caloriesTarget} kcal</strong></li>
+            <li className="summary-item"><span>Proteína sugerida</span><strong>{proteinTarget} g</strong></li>
           </ul>
-          <p className="muted-note">
-            Esses valores são uma base inicial. Ajuste no painel conforme sua rotina.
-          </p>
+          <p className="muted-note">Esses valores são uma base inicial.</p>
           <div className="cta-row">
-            <a className="btn secondary" href="/goals">
-              Ajustar metas
-            </a>
-            <a className="btn secondary" href="/dashboard">
-              Ver painel
-            </a>
+            <a className="btn secondary" href="/goals">Ajustar metas</a>
+            <a className="btn secondary" href="/dashboard">Ver painel</a>
           </div>
         </div>
       </div>

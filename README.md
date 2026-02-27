@@ -1,58 +1,58 @@
-# fitness-life
+# 🏋️ Fitness Life
 
-Aplicativo para organizar a rotina fitness em um só lugar. O projeto reúne um backend em FastAPI e um frontend em Next.js para registrar metas, refeições e treinos, além de oferecer um chat simples para apoio ao acompanhamento.
+Aplicativo completo para organizar sua rotina fitness em um só lugar. Registre treinos, refeições, metas e acompanhe sua evolução com suporte de IA.
 
-## O que este projeto entrega
+## ✨ Funcionalidades
 
-- Cadastro e login de usuários
-- Metas fitness (consulta e atualização)
-- Registro e listagem de refeições e treinos
-- Resumo diário por data
-- Chat para conversas rápidas relacionadas ao plano fitness
+- **Cadastro inteligente** — Fluxo guiado com cálculo automático de TMB, meta calórica, proteína e hidratação
+- **Dashboard interativo** — Resumo diário com anéis de progresso (calorias, proteína, água)
+- **Registro de Treinos** — Cadastre exercícios com séries, repetições e carga. Marque como concluído com toggle deslizante
+- **Registro de Refeições** — Registre suas refeições do dia com macros detalhados
+- **Sugestão com IA** — Gere treinos e refeições personalizados com base no seu perfil e histórico
+- **Chat com IA** — Assistente fitness especialista que responde sobre suplementação, pré-treino, dietas e mais
+- **Controle de Água** — Registre copos de água e acompanhe sua hidratação diária
+- **Landing Page moderna** — Página de apresentação responsiva com design premium
 
-## Tecnologias
+## 🛠️ Tecnologias
 
-- Backend: FastAPI
-- Frontend: Next.js (App Router)
-- Banco: PostgreSQL (com fallback para SQLite em desenvolvimento)
+| Camada    | Stack                                      |
+|-----------|---------------------------------------------|
+| Backend   | FastAPI, SQLAlchemy, Pydantic, Groq AI      |
+| Frontend  | Next.js 14 (App Router), React, CSS puro    |
+| Banco     | PostgreSQL (Supabase) / SQLite (dev local)  |
+| IA        | Groq (LLaMA / Mixtral)                      |
 
-## Estrutura do monorepo
+## 📁 Estrutura do Monorepo
 
-- `apps/api`: API FastAPI
-- `apps/web`: Web app Next.js
+```
+fitness-life/
+├── apps/
+│   ├── api/          # Backend FastAPI
+│   │   ├── app/
+│   │   │   ├── routers/   # auth, fitness, chat
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   └── main.py
+│   │   └── .env
+│   └── web/          # Frontend Next.js
+│       └── src/app/
+│           ├── (marketing)/   # Landing page
+│           ├── (public)/      # Login / Registro
+│           └── (app)/         # Dashboard, Treinos, Refeições, Metas, Chat
+└── README.md
+```
 
-## Como rodar o backend (API)
+## 🚀 Como rodar
 
-1. Configure as variáveis em um arquivo `.env` na raiz (use o `.env.example` como base).
-2. Crie um ambiente virtual e instale as dependências.
-3. Suba o servidor:
+### Backend (API)
 
 ```bash
 cd apps/api
 pip install -e .
-uvicorn app.main:app --reload
+py -m uvicorn app.main:app --reload --port 8000
 ```
 
-Se voce nao tiver PostgreSQL configurado, o backend usa SQLite local automaticamente (arquivo `dev.db`).
-
-## Usando Supabase como banco
-
-O Supabase entra apenas como Postgres gerenciado. A autenticacao continua no FastAPI.
-
-1. Crie um projeto no Supabase.
-2. Copie a connection string do banco (Settings > Database).
-3. Configure as variaveis no `.env`:
-
-```bash
-DATABASE_URL=postgresql+psycopg2://postgres:YOUR_PASSWORD@db.xxxxx.supabase.co:5432/postgres
-DATABASE_SSL=true
-```
-
-4. Suba a API normalmente. As tabelas sao criadas no startup pela `Base.metadata.create_all`.
-
-Dica: nao coloque o `service_role` no frontend. A API deve ser a unica responsavel por acessar o banco.
-
-## Como rodar o frontend (Web)
+### Frontend (Web)
 
 ```bash
 cd apps/web
@@ -60,26 +60,51 @@ npm install
 npm run dev
 ```
 
-Abra: http://localhost:3000
+Acesse: **http://localhost:3000**
 
-## Endpoints principais da API
+## ⚙️ Variáveis de Ambiente
 
-- `GET /health`
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET/PUT /fitness/goals`
-- `POST/GET /fitness/meals`
-- `POST/GET /fitness/workouts`
-- `GET /fitness/summary?date=YYYY-MM-DD`
-- `POST /chat`
+Crie um arquivo `.env` em `apps/api/`:
 
-## Banco e migracoes
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:SENHA@db.xxxxx.supabase.co:5432/postgres
+DATABASE_SSL=true
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxx
+```
 
-As migracoes estao em [apps/api/migrations](apps/api/migrations). Em producao, recomenda-se usar PostgreSQL com variaveis de ambiente configuradas no `.env`.
+> Sem PostgreSQL? O backend usa SQLite local automaticamente (`dev.db`).
 
-## Proximos passos sugeridos
+## 🔌 Endpoints da API
 
-- Regras de senha e validacao de e-mail mais detalhadas
-- Paginacao e filtros para refeicoes e treinos
-- Integracao real no chat
-- Testes basicos para autenticacao e rotas de fitness
+| Método | Rota                         | Descrição                      |
+|--------|------------------------------|--------------------------------|
+| GET    | `/health`                    | Health check                   |
+| POST   | `/auth/register`             | Cadastro de usuário            |
+| POST   | `/auth/login`                | Login (JWT)                    |
+| GET    | `/fitness/goals`             | Consultar metas                |
+| PUT    | `/fitness/goals`             | Atualizar metas                |
+| POST   | `/fitness/meals`             | Criar refeição                 |
+| GET    | `/fitness/meals`             | Listar refeições               |
+| POST   | `/fitness/workouts`          | Criar treino                   |
+| GET    | `/fitness/workouts`          | Listar treinos                 |
+| PUT    | `/fitness/workouts/{id}`     | Atualizar treino               |
+| DELETE | `/fitness/workouts/{id}`     | Excluir treino                 |
+| POST   | `/fitness/water`             | Registrar água                 |
+| GET    | `/fitness/summary`           | Resumo diário                  |
+| POST   | `/fitness/ai/suggest-workout`| Sugestão de treino com IA      |
+| POST   | `/fitness/ai/suggest-meal`   | Sugestão de refeição com IA    |
+| POST   | `/chat`                      | Chat com assistente IA         |
+
+## 📸 Páginas
+
+- **Landing Page** — Apresentação com hero, features e CTA
+- **Login / Registro** — Fluxo com cálculo de TMB e metas
+- **Dashboard** — Anéis de progresso + controle de água
+- **Treinos** — Listagem com toggle de conclusão + sugestão IA
+- **Refeições** — Registro com macros + sugestão IA
+- **Metas** — Edição de objetivos e nível de atividade
+- **Chat IA** — Assistente especialista em fitness
+
+## 📄 Licença
+
+© 2026 Fitness Life. Todos os direitos reservados.

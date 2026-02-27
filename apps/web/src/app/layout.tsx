@@ -1,5 +1,4 @@
 import "./globals.css";
-import ThemeToggle from "./components/ThemeToggle";
 
 export default function RootLayout({
   children,
@@ -7,27 +6,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" data-theme="dark">
+    <html lang="pt-BR">
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(() => {
-  try {
-    const key = "fitness-life-theme";
-    const stored = localStorage.getItem(key);
-    const theme = stored === "light" || stored === "dark" ? stored : "dark";
-    document.documentElement.setAttribute("data-theme", theme);
-  } catch (e) {
-    document.documentElement.setAttribute("data-theme", "dark");
-  }
-})();`,
-          }}
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        <title>Fitness Life</title>
       </head>
-      <body>
-        <ThemeToggle />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

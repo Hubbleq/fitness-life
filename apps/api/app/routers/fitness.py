@@ -111,11 +111,12 @@ def upsert_goals(
 ):
     goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
     if goal is None:
-        goal = models.Goal(user_id=current_user.id, calories=goal_in.calories, protein=goal_in.protein)
+        goal = models.Goal(user_id=current_user.id, calories=goal_in.calories, protein=goal_in.protein, water_ml=goal_in.water_ml)
         db.add(goal)
     else:
         goal.calories = goal_in.calories
         goal.protein = goal_in.protein
+        goal.water_ml = goal_in.water_ml
     db.commit()
     db.refresh(goal)
     return goal
@@ -156,6 +157,24 @@ def update_meal(
     db.refresh(meal)
     return meal
 
+@router.delete("/meals/{meal_id}", status_code=204)
+def delete_meal(
+    meal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    meal = (
+        db.query(models.Meal)
+        .filter(models.Meal.id == meal_id, models.Meal.user_id == current_user.id)
+        .first()
+    )
+    if meal is None:
+        raise HTTPException(status_code=404, detail="Refeição não encontrada")
+
+    db.delete(meal)
+    db.commit()
+    return None
+
 
 @router.get("/meals", response_model=list[schemas.MealOut])
 def list_meals(
@@ -175,7 +194,12 @@ def create_workout(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    workout = models.Workout(user_id=current_user.id, **workout_in.dict())
+    workout_data = workout_in.dict(exclude={"exercises"})
+    workout = models.Workout(user_id=current_user.id, **workout_data)
+    
+    for ex in workout_in.exercises:
+        workout.exercises.append(models.WorkoutExercise(**ex.dict()))
+
     db.add(workout)
     db.commit()
     db.refresh(workout)
@@ -200,9 +224,37 @@ def update_workout(
     workout.date = workout_in.date
     workout.name = workout_in.name
     workout.duration = workout_in.duration
+    workout.cardio_minutes = workout_in.cardio_minutes
+
+    # Clear old exercises and replace with new ones
+    db.query(models.WorkoutExercise).filter(models.WorkoutExercise.workout_id == workout.id).delete()
+    
+    for ex in workout_in.exercises:
+        workout.exercises.append(models.WorkoutExercise(**ex.dict()))
+
     db.commit()
     db.refresh(workout)
     return workout
+
+@router.delete("/workouts/{workout_id}", status_code=204)
+def delete_workout(
+    workout_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    workout = (
+        db.query(models.Workout)
+        .filter(models.Workout.id == workout_id, models.Workout.user_id == current_user.id)
+        .first()
+    )
+    if workout is None:
+        raise HTTPException(status_code=404, detail="Treino não encontrado")
+
+    # Cascade delete is handled by relationship, but we can explicitly delete exercises first just in case
+    db.query(models.WorkoutExercise).filter(models.WorkoutExercise.workout_id == workout.id).delete()
+    db.delete(workout)
+    db.commit()
+    return None
 
 
 @router.get("/workouts", response_model=list[schemas.WorkoutOut])
@@ -233,10 +285,18 @@ def summary(
         .scalar()
     )
 
+    total_water = (
+        db.query(func.coalesce(func.sum(models.WaterLog.amount_ml), 0))
+        .filter(models.WaterLog.user_id == current_user.id, models.WaterLog.date == date)
+        .scalar()
+    )
+
     return schemas.SummaryOut(
         date=date,
         protein_goal=goal.protein,
         protein_consumed=int(total_protein),
+        water_goal=goal.water_ml,
+        water_consumed=int(total_water),
     )
 
 
@@ -311,3 +371,165 @@ def weekly_summary(
         workouts_goal=weekly_goal,
         total_minutes=total_minutes,
     )
+
+from pydantic import BaseModel
+import json
+import os
+
+class SuggestRequest(BaseModel):
+    input: str | None = None
+
+@router.post("/ai/suggest-workout", response_model=schemas.WorkoutBase)
+def suggest_workout(
+    req: SuggestRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    from groq import Groq
+    from datetime import timedelta
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY nao configurada")
+        
+    client = Groq(api_key=api_key)
+
+    # Context Awareness
+    seven_days_ago = date.today() - timedelta(days=7)
+    recent_workouts = (
+        db.query(models.Workout)
+        .filter(
+            models.Workout.user_id == current_user.id,
+            models.Workout.date >= seven_days_ago
+        )
+        .all()
+    )
+
+    trained_muscles = set()
+    for w in recent_workouts:
+        for ex in w.exercises:
+            if ex.muscle_group:
+                trained_muscles.add(ex.muscle_group.lower())
+
+    if not recent_workouts:
+        context_instruction = "O usuário NÃO POSSUI treinos recentes registrados. Gere uma Ficha de Treino Otimizada (Full-body ou um treino AB) para introduzir ou recomeçar."
+    else:
+        muscles_str = ", ".join(trained_muscles)
+        context_instruction = f"ATENÇÃO: O usuário já treinou os seguintes músculos nos últimos 7 dias: {muscles_str}. VOCÊ DEVE priorizar outros músculos e EVITAR a repetição direta do que já foi treinado."
+
+    
+    prompt = f"""Você é um especialista em fitness. O usuário precisa de uma sugestão de treino.
+{context_instruction}
+
+Retorne um JSON válido correspondendo a este formato exato:
+{{
+  "date": "YYYY-MM-DD",
+  "name": "Nome curto do treino (ex: Treino A - Peito)",
+  "duration": 60,
+  "cardio_minutes": 15,
+  "exercises": [
+    {{
+      "name": "Supino Reto",
+      "muscle_group": "Peito",
+      "sets": 4,
+      "reps": "10-12"
+    }}
+  ]
+}}
+NÃO INCLUA CARGAS ou pesos (weight_kg). NUNCA forneça estimativas de calorias queimadas.
+Sempre retorne APENAS um objeto JSON.
+
+Pedido do usuário (se houver): {req.input or 'Sugira um treino geral hipertrofia adequado'}
+"""
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        data = json.loads(completion.choices[0].message.content)
+        data["date"] = str(date.today())
+        
+        return schemas.WorkoutBase(**data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ai/suggest-meal", response_model=schemas.MealBase)
+def suggest_meal(
+    req: SuggestRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    from groq import Groq
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY nao configurada")
+        
+    client = Groq(api_key=api_key)
+    
+    prompt = f"""Você é um nutricionista. Sugira uma refeição baseada SOMENTE em INGREDIENTES SIMPLES e baratos do dia a dia.
+Para garantir variedade, ESCOLHA ALEATORIAMENTE uma combinação diferente a cada vez usando opções como: frango, atum, ovos, carne moída, patinho, aveia, batata doce, arroz, feijão, macarrão, salada, banana, maçã. Não repita sempre a mesma refeição de "Frango com Batata Doce". Seja criativo, mas mantenha acessível.
+
+Retorne um JSON válido correspondendo a este formato:
+{{
+  "date": "YYYY-MM-DD",
+  "name": "Nome claro da refeição (ex: Omelete de Atum com Aveia)",
+  "protein": 30
+}}
+Sempre retorne APENAS um objeto JSON.
+
+Pedido do usuário (se houver): {req.input or 'Sugira uma refeição simples rica em proteína'}
+"""
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        data = json.loads(completion.choices[0].message.content)
+        data["date"] = str(date.today())
+        
+        return schemas.MealBase(**data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/water", response_model=schemas.WaterLogOut)
+def log_water(
+    water: schemas.WaterLogBase,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        new_log = models.WaterLog(
+            user_id=current_user.id,
+            date=water.date,
+            amount_ml=water.amount_ml
+        )
+        db.add(new_log)
+        db.commit()
+        db.refresh(new_log)
+        return new_log
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/water", response_model=schemas.WaterLogOut)
+def log_water(
+    water: schemas.WaterLogBase,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        new_log = models.WaterLog(
+            user_id=current_user.id,
+            date=water.date,
+            amount_ml=water.amount_ml
+        )
+        db.add(new_log)
+        db.commit()
+        db.refresh(new_log)
+        return new_log
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

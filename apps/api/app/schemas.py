@@ -44,8 +44,9 @@ class Token(BaseModel):
 class GoalBase(BaseModel):
     calories: int
     protein: int
+    water_ml: int
 
-    @field_validator("calories", "protein")
+    @field_validator("calories", "protein", "water_ml")
     @classmethod
     def validate_positive(cls, value: int):
         if value <= 0:
@@ -88,10 +89,28 @@ class MealOut(MealBase):
         from_attributes = True
 
 
+class WorkoutExerciseBase(BaseModel):
+    name: str
+    muscle_group: str
+    sets: int
+    reps: str
+    weight_kg: float | None = None
+
+
+class WorkoutExerciseOut(WorkoutExerciseBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
 class WorkoutBase(BaseModel):
     date: date
     name: str
     duration: int
+    cardio_minutes: int | None = None
+    is_completed: bool = False
+    exercises: list[WorkoutExerciseBase] = []
 
     @field_validator("name")
     @classmethod
@@ -111,6 +130,7 @@ class WorkoutBase(BaseModel):
 
 class WorkoutOut(WorkoutBase):
     id: int
+    exercises: list[WorkoutExerciseOut] = []
 
     class Config:
         from_attributes = True
@@ -120,6 +140,26 @@ class SummaryOut(BaseModel):
     date: date
     protein_goal: int
     protein_consumed: int
+    water_goal: int | None = None
+    water_consumed: int | None = None
+
+class WaterLogBase(BaseModel):
+    date: date
+    amount_ml: int
+
+    @field_validator("amount_ml")
+    @classmethod
+    def validate_amount(cls, value: int):
+        if value <= 0:
+            raise ValueError("O volume de água não pode ser negativo ou zero")
+        return value
+
+
+class WaterLogOut(WaterLogBase):
+    id: int
+
+    class Config:
+        from_attributes = True
 
 
 class ProfileBase(BaseModel):

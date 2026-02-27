@@ -1,9 +1,24 @@
+# Environment files - NUNCA commitar!
 .env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Python
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
+
+# Node/Next.js
 node_modules/
 .next/
+
+# Database local
 dev.db
+*.db
+
+# IDE
 .vscode/
-*.egg-info/
+.idea/
