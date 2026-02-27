@@ -29,27 +29,90 @@ async def chat_groq(
     if not GROQ_API_KEY:
         return {"message": "Chave da API Groq não configurada. Adicione GROQ_API_KEY no .env."}
 
-    # Fetch User Context
+    from datetime import date as dt_date
+    from sqlalchemy import func
+
+    # ─── Fetch Full User Context ───
     profile = db.query(models.Profile).filter(models.Profile.user_id == current_user.id).first()
     goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
-    recent_meals = db.query(models.Meal).filter(models.Meal.user_id == current_user.id).order_by(models.Meal.date.desc()).limit(5).all()
-    recent_workouts = db.query(models.Workout).filter(models.Workout.user_id == current_user.id).order_by(models.Workout.date.desc()).limit(5).all()
     
+    # Last 15 meals with full details
+    recent_meals = (
+        db.query(models.Meal)
+        .filter(models.Meal.user_id == current_user.id)
+        .order_by(models.Meal.date.desc())
+        .limit(15)
+        .all()
+    )
+    
+    # Last 15 workouts with exercises (eager loaded via relationship)
+    recent_workouts = (
+        db.query(models.Workout)
+        .filter(models.Workout.user_id == current_user.id)
+        .order_by(models.Workout.date.desc())
+        .limit(15)
+        .all()
+    )
+    
+    # Today's water intake
+    today = dt_date.today()
+    water_today = (
+        db.query(func.coalesce(func.sum(models.WaterLog.amount_ml), 0))
+        .filter(models.WaterLog.user_id == current_user.id, models.WaterLog.date == today)
+        .scalar()
+    )
+
     context_parts = []
-    if profile:
-        context_parts.append(f"Perfil: {profile.age} anos, {profile.sex}, {profile.weight_kg}kg, {profile.height_cm}cm, Objetivo: {profile.goal}, Atividade: {profile.activity_level}.")
-    if goal:
-        context_parts.append(f"Metas Diárias: {goal.calories} kcal, {goal.protein}g proteína.")
-    if recent_meals:
-        meals_str = ", ".join([f"{m.name} ({m.protein}g PTN)" for m in recent_meals])
-        context_parts.append(f"Últimas refeições registradas: {meals_str}.")
-    if recent_workouts:
-        workouts_str = ", ".join([f"{w.name} ({w.duration} min)" for w in recent_workouts])
-        context_parts.append(f"Últimos treinos registrados: {workouts_str}.")
-        
-    user_context = "\n".join(context_parts) if context_parts else "Nenhum dado de perfil/histórico registrado ainda."
     
-    dynamic_prompt = f"{SYSTEM_PROMPT}\n\n[CONTEXTO DO USUÁRIO]\n{user_context}\nUse este contexto para fazer recomendações hiperpersonalizadas."
+    if profile:
+        context_parts.append(
+            f"PERFIL DO USUÁRIO: {profile.name or 'Sem nome'}, {profile.age} anos, "
+            f"Sexo: {profile.sex}, Peso: {profile.weight_kg}kg, Altura: {profile.height_cm}cm, "
+            f"Objetivo: {profile.goal}, Nível de Atividade: {profile.activity_level}."
+        )
+    
+    if goal:
+        context_parts.append(
+            f"METAS DIÁRIAS: {goal.calories} kcal, {goal.protein}g proteína, {goal.water_ml}ml água."
+        )
+    
+    # Water
+    water_goal = goal.water_ml if goal else 2000
+    context_parts.append(f"ÁGUA HOJE: {water_today}ml de {water_goal}ml meta.")
+    
+    # Meals - full detail
+    if recent_meals:
+        meals_lines = []
+        for m in recent_meals:
+            meals_lines.append(f"  - [{m.date}] {m.name}: {m.protein}g proteína")
+        context_parts.append("ÚLTIMAS REFEIÇÕES REGISTRADAS:\n" + "\n".join(meals_lines))
+    else:
+        context_parts.append("REFEIÇÕES: Nenhuma refeição registrada ainda.")
+    
+    # Workouts - full detail with exercises
+    if recent_workouts:
+        workouts_lines = []
+        for w in recent_workouts:
+            status = "✅ Concluído" if w.is_completed else "⏳ Pendente"
+            cardio_info = f" (+{w.cardio_minutes}min cardio)" if w.cardio_minutes else ""
+            workouts_lines.append(f"  [{w.date}] {w.name} — {w.duration}min{cardio_info} — {status}")
+            if w.exercises:
+                for ex in w.exercises:
+                    weight_str = f" × {ex.weight_kg}kg" if ex.weight_kg else ""
+                    workouts_lines.append(f"    • {ex.muscle_group}: {ex.name} — {ex.sets}x{ex.reps}{weight_str}")
+        context_parts.append("ÚLTIMOS TREINOS REGISTRADOS:\n" + "\n".join(workouts_lines))
+    else:
+        context_parts.append("TREINOS: Nenhum treino registrado ainda.")
+        
+    user_context = "\n\n".join(context_parts)
+    
+    dynamic_prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        f"[DADOS COMPLETOS DO USUÁRIO — USE PARA ANÁLISE PERSONALIZADA]\n"
+        f"{user_context}\n\n"
+        f"Analise estes dados para dar recomendações hiperpersonalizadas. "
+        f"Quando o usuário perguntar sobre seus treinos ou refeições, use os dados acima para responder com precisão."
+    )
 
     try:
         from groq import Groq
