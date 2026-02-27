@@ -85,7 +85,14 @@ export default function DashboardPage() {
     try {
       setError("");
       const token = getToken();
-      const data = await apiFetch(`/fitness/summary?date=${selectedDate}`, { headers: authHeader(token) });
+
+      const weekStart = weekStartFromDate(selectedDate);
+      const [data, rec, week] = await Promise.all([
+        apiFetch(`/fitness/summary?date=${selectedDate}`, { headers: authHeader(token) }),
+        apiFetch(`/fitness/recommendations?date=${selectedDate}`, { headers: authHeader(token) }),
+        weekStart ? apiFetch(`/fitness/weekly-summary?week_start=${weekStart}`, { headers: authHeader(token) }) : Promise.resolve(null)
+      ]);
+
       setDayStats({
         date: data.date,
         proteinConsumed: data.protein_consumed,
@@ -94,21 +101,20 @@ export default function DashboardPage() {
         waterGoal: data.water_goal
       });
 
-      const rec = await apiFetch(`/fitness/recommendations?date=${selectedDate}`, { headers: authHeader(token) });
       setPlanStats({
         bmr: rec.bmr, caloriesTarget: rec.calories_target, proteinTarget: rec.protein_target,
         proteinRemaining: rec.protein_remaining, workoutIntensity: rec.workout_intensity,
         weeklyGoal: rec.weekly_workouts_goal, workoutPlan: rec.workout_plan,
       });
 
-      const weekStart = weekStartFromDate(selectedDate);
-      if (weekStart) {
-        const week = await apiFetch(`/fitness/weekly-summary?week_start=${weekStart}`, { headers: authHeader(token) });
+      if (week) {
         setWeekStats({
           weekStart: week.week_start, weekEnd: week.week_end,
           workoutsCount: week.workouts_count, workoutsGoal: week.workouts_goal,
           totalMinutes: week.total_minutes,
         });
+      } else {
+        setWeekStats({ weekStart: "", weekEnd: "", workoutsCount: null, workoutsGoal: null, totalMinutes: null });
       }
     } catch (err: any) {
       setError(err.message || "Erro ao buscar dados");

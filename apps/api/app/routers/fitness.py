@@ -225,6 +225,7 @@ def update_workout(
     workout.name = workout_in.name
     workout.duration = workout_in.duration
     workout.cardio_minutes = workout_in.cardio_minutes
+    workout.is_completed = workout_in.is_completed
 
     # Clear old exercises and replace with new ones
     db.query(models.WorkoutExercise).filter(models.WorkoutExercise.workout_id == workout.id).delete()
@@ -232,6 +233,26 @@ def update_workout(
     for ex in workout_in.exercises:
         workout.exercises.append(models.WorkoutExercise(**ex.dict()))
 
+    db.commit()
+    db.refresh(workout)
+    return workout
+
+
+@router.patch("/workouts/{workout_id}/toggle", response_model=schemas.WorkoutOut)
+def toggle_workout_completion(
+    workout_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    workout = (
+        db.query(models.Workout)
+        .filter(models.Workout.id == workout_id, models.Workout.user_id == current_user.id)
+        .first()
+    )
+    if workout is None:
+        raise HTTPException(status_code=404, detail="Treino não encontrado")
+
+    workout.is_completed = not workout.is_completed
     db.commit()
     db.refresh(workout)
     return workout
@@ -514,22 +535,3 @@ def log_water(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/water", response_model=schemas.WaterLogOut)
-def log_water(
-    water: schemas.WaterLogBase,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    try:
-        new_log = models.WaterLog(
-            user_id=current_user.id,
-            date=water.date,
-            amount_ml=water.amount_ml
-        )
-        db.add(new_log)
-        db.commit()
-        db.refresh(new_log)
-        return new_log
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))

@@ -34,6 +34,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     throw new Error(text || "Request failed");
   }
 
+  // 204 No Content — nothing to parse
+  if (res.status === 204) {
+    return null;
+  }
+
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return res.json();

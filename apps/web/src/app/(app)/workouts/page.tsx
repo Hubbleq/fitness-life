@@ -171,11 +171,8 @@ export default function WorkoutsPage() {
   const toggleWorkoutCompletion = async (w: Workout) => {
     try {
       const token = getToken();
-      await apiFetch(`/fitness/workouts/${w.id}`, {
-        method: "PUT", headers: authHeader(token),
-        body: JSON.stringify({
-          ...w, is_completed: !w.is_completed
-        }),
+      await apiFetch(`/fitness/workouts/${w.id}/toggle`, {
+        method: "PATCH", headers: authHeader(token),
       });
       loadWorkouts();
     } catch (err: any) { setMessage(`Erro ao alterar status: ${err.message}`); }
