@@ -1,8 +1,36 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { getToken, authHeader, apiFetch } from "../../lib/api";
+
+const TypewriterText = ({ text, onType, onComplete }: { text: string; onType?: () => void; onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const onTypeRef = useRef(onType);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onTypeRef.current = onType;
+    onCompleteRef.current = onComplete;
+  });
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      i += 2; // type slightly faster
+      setDisplayedText(text.slice(0, i));
+      if (onTypeRef.current) onTypeRef.current();
+
+      if (i >= text.length) {
+        clearInterval(interval);
+        if (onCompleteRef.current) onCompleteRef.current();
+      }
+    }, 15);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <>{displayedText}</>;
+};
 
 const navItems = [
   {
@@ -68,30 +96,32 @@ export default function AppLayout({
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
+  const userHasScrolledUpRef = useRef(false);
 
-  const [chatMessages, setChatMessages] = useState<{ role: string; text: string; action?: any }[]>([
-    { role: "bot", text: "Olá! Como posso ajudar hoje?" },
+  const [chatMessages, setChatMessages] = useState<{ role: string; text: string; action?: any; typing?: boolean }[]>([
+    { role: "bot", text: "Olá! Como posso ajudar hoje?", typing: false },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
 
   const scrollToBottom = () => {
-    if (chatBodyRef.current) {
+    if (chatBodyRef.current && !userHasScrolledUpRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
   };
 
   useEffect(() => {
-    if (!userHasScrolledUp) {
-      scrollToBottom();
-    }
-  }, [chatMessages, chatLoading, userHasScrolledUp]);
+    scrollToBottom();
+  }, [chatMessages, chatLoading]);
 
   const handleScroll = () => {
     if (!chatBodyRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatBodyRef.current;
     const isScrolledUp = scrollHeight - scrollTop - clientHeight > 30;
-    setUserHasScrolledUp(isScrolledUp);
+    if (userHasScrolledUp !== isScrolledUp) {
+      setUserHasScrolledUp(isScrolledUp);
+    }
+    userHasScrolledUpRef.current = isScrolledUp;
   };
 
   const handleChatSend = async (e: React.FormEvent) => {
@@ -113,10 +143,10 @@ export default function AppLayout({
       const data = await res.json();
       setChatMessages((prev) => [
         ...prev,
-        { role: "bot", text: data.message || "Sem resposta", action: data.suggested_action }
+        { role: "bot", text: data.message || "Sem resposta", action: data.suggested_action, typing: true }
       ]);
     } catch {
-      setChatMessages((prev) => [...prev, { role: "bot", text: "Erro ao conectar." }]);
+      setChatMessages((prev) => [...prev, { role: "bot", text: "Erro ao conectar.", typing: true }]);
     }
     setChatLoading(false);
   };
@@ -138,10 +168,11 @@ export default function AppLayout({
 
       setChatMessages((prev) => [...prev, {
         role: "bot",
-        text: `Pronto! ${action.type === "create_workout" ? "Treino" : "Refeição"} salvo com sucesso no seu diário.`
+        text: `Pronto! ${action.type === "create_workout" ? "Treino" : "Refeição"} salvo com sucesso no seu diário.`,
+        typing: true
       }]);
     } catch (e) {
-      setChatMessages((prev) => [...prev, { role: "bot", text: "Erro ao executar ação" }]);
+      setChatMessages((prev) => [...prev, { role: "bot", text: "Erro ao executar ação", typing: true }]);
     }
     setChatLoading(false);
   };
@@ -161,13 +192,11 @@ export default function AppLayout({
             <div className="brand" style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {sidebarOpen ? (
                 <>
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--primary)">
-                    <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43 1.43-1.43L8.43 11 12 14.57 8.43 18.14 7 16.71 5.57 18.14 7.71 20.28 9.14 21.71 10.57 20.28l1.43 1.43 1.43-1.43-1.43-1.43L15.57 15.28l3.57 3.57 1.43-1.43-1.43-1.43z" />
-                  </svg>
+                  <img src="/images/fitness-hub.png" alt="Fitness Hub Logo" width="32" height="32" style={{ borderRadius: '8px', objectFit: 'contain' }} />
                   Fitness <span>Hub</span>
                 </>
               ) : (
-                <span style={{ color: "var(--primary)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.5px" }}>FH</span>
+                <img src="/images/fitness-hub.png" alt="Fitness Hub Logo" width="32" height="32" style={{ borderRadius: '8px', objectFit: 'contain' }} />
               )}
             </div>
             <button
@@ -305,7 +334,17 @@ export default function AppLayout({
                     )}
                   </div>
                   <div className={`chat-bubble ${m.role === "user" ? "user" : "bot"}`} style={{ margin: 0, maxWidth: "100%" }}>
-                    {m.text}
+                    {m.typing ? (
+                      <TypewriterText
+                        text={m.text}
+                        onType={scrollToBottom}
+                        onComplete={() => {
+                          setChatMessages(msgs => msgs.map((msg, idx) => idx === i ? { ...msg, typing: false } : msg));
+                        }}
+                      />
+                    ) : (
+                      m.text
+                    )}
                   </div>
                 </div>
                 {/* Prompt Pills for the very first welcome message */}

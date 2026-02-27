@@ -80,6 +80,27 @@ def register(request: Request, user_in: schemas.UserRegister, db: Session = Depe
         )
         db.add(goal_obj)
         db.commit()
+    else:
+        # Default profile for fast registrations
+        profile = models.Profile(
+            user_id=user.id,
+            name=user_in.name,
+            sex="male",
+            age=25,
+            height_cm=175,
+            weight_kg=75,
+            activity_level="moderate",
+            goal="maintain",
+        )
+        db.add(profile)
+        goal_obj = models.Goal(
+            user_id=user.id,
+            calories=2500,
+            protein=150,
+            water_ml=2500
+        )
+        db.add(goal_obj)
+        db.commit()
 
     token = create_access_token(user.email)
     return {"access_token": token, "token_type": "bearer"}

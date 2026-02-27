@@ -20,7 +20,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       headers,
     });
   } catch (err) {
-    throw new Error("Nao foi possivel conectar com a API.");
+    console.error("[Diagnóstico de Rede] Falha de conexão:", err);
+    throw new Error("Aguardando estabilidade de conexão...");
   }
 
   if (!res.ok) {

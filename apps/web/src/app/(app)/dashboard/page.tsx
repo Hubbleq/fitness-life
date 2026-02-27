@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, authHeader, getToken } from "../../../lib/api";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function ProgressRing({ percent, label, sub }: { percent: number; label: string; sub: string }) {
   const r = 38;
   const c = 2 * Math.PI * r;
-  const offset = c - (Math.min(percent, 100) / 100) * c;
+  const targetOffset = c - (Math.min(percent, 100) / 100) * c;
+  const [offset, setOffset] = useState(c);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setOffset(targetOffset), 150);
+    return () => clearTimeout(timer);
+  }, [targetOffset]);
+
   return (
     <div className="progress-ring-item">
       <div className="progress-ring">
@@ -55,6 +63,7 @@ export default function DashboardPage() {
     workoutsCount: null as number | null,
     workoutsGoal: null as number | null,
     totalMinutes: null as number | null,
+    chartData: [] as { date: string; minutes: number }[],
   });
 
   useEffect(() => {
@@ -112,15 +121,16 @@ export default function DashboardPage() {
           weekStart: week.week_start, weekEnd: week.week_end,
           workoutsCount: week.workouts_count, workoutsGoal: week.workouts_goal,
           totalMinutes: week.total_minutes,
+          chartData: week.chart_data || [],
         });
       } else {
-        setWeekStats({ weekStart: "", weekEnd: "", workoutsCount: null, workoutsGoal: null, totalMinutes: null });
+        setWeekStats({ weekStart: "", weekEnd: "", workoutsCount: null, workoutsGoal: null, totalMinutes: null, chartData: [] });
       }
     } catch (err: any) {
       setError(err.message || "Erro ao buscar dados");
       setDayStats({ date: "", proteinConsumed: null, proteinGoal: null, waterConsumed: null, waterGoal: null });
       setPlanStats({ bmr: null, caloriesTarget: null, proteinTarget: null, proteinRemaining: null, workoutIntensity: "", weeklyGoal: null, workoutPlan: "" });
-      setWeekStats({ weekStart: "", weekEnd: "", workoutsCount: null, workoutsGoal: null, totalMinutes: null });
+      setWeekStats({ weekStart: "", weekEnd: "", workoutsCount: null, workoutsGoal: null, totalMinutes: null, chartData: [] });
     }
   };
 
@@ -177,25 +187,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* BMR Card */}
-      <div className="stat-pills" style={{ marginBottom: 16 }}>
-        <div className="stat-pill">
-          <div className="stat-pill-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+      {/* Hero Metric */}
+      <div className="surface-card glow-neon-sm" style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 32px" }}>
+        <div>
+          <span className="eyebrow">CALORIAS RESTANTES</span>
+          <div style={{ fontSize: 40, fontWeight: 800, color: "var(--primary)", lineHeight: 1.1, marginTop: 4 }}>
+            {fv((planStats.caloriesTarget || 0) - ((dayStats.proteinConsumed || 0) * 30))}
           </div>
-          <div>
-            <div className="stat-pill-label">TAXA METABÓLICA BASAL</div>
-            <div className="stat-pill-value">{fv(planStats.bmr)}</div>
-            <div className="stat-pill-label">kcal/dia</div>
-          </div>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>de {fv(planStats.caloriesTarget)} diárias</span>
         </div>
-        <div className="stat-pill" style={{ justifyContent: "flex-end", textAlign: "right" }}>
-          <div>
-            <div className="stat-pill-label">{fv(planStats.proteinTarget, "g")} · {fv(planStats.caloriesTarget, " kcal")}</div>
-            <div style={{ color: "var(--primary)", fontWeight: 700, fontSize: 14 }}>
-              {planStats.workoutIntensity || "Cutting"}
-            </div>
-          </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{fv(planStats.proteinRemaining, "g")}</div>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Proteína Restante</span>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)", marginTop: 8 }}>{planStats.workoutIntensity || "Treino"}</div>
         </div>
       </div>
 
@@ -221,31 +225,47 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat Pills */}
-      <div className="stat-pills" style={{ marginBottom: 16 }}>
-        <div className="stat-pill">
-          <div className="stat-pill-icon">
-            <svg viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" /></svg>
+      {/* Premium Quick Actions */}
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" /></svg>
+        Ações Rápidas
+      </h2>
+      <div className="quick-actions-row">
+        <a href="/workouts" className="quick-action-card">
+          <div className="quick-action-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43 1.43-1.43L8.43 11 12 14.57 8.43 18.14 7 16.71 5.57 18.14 7.71 20.28 9.14 21.71 10.57 20.28l1.43 1.43 1.43-1.43-1.43-1.43L15.57 15.28l3.57 3.57 1.43-1.43-1.43-1.43z" />
+            </svg>
           </div>
-          <div>
-            <div className="stat-pill-value">--</div>
-            <div className="stat-pill-label">kcal queimadas</div>
+          <div className="quick-action-text">
+            <span className="quick-action-label">Treinar</span>
+            <span className="quick-action-sub">Registrar treino</span>
           </div>
-        </div>
-        <div className="stat-pill" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="stat-pill-icon">
-              <svg viewBox="0 0 24 24"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z" /></svg>
-            </div>
-            <div>
-              <div className="stat-pill-value" style={{ color: "#3b82f6" }}>{fv(dayStats.waterConsumed, " ml")}</div>
-              <div className="stat-pill-label">consumidos hoje</div>
-            </div>
+        </a>
+
+        <a href="/meals" className="quick-action-card">
+          <div className="quick-action-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" />
+            </svg>
           </div>
-          <button onClick={handleAddWater} style={{ background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", color: "#3b82f6", width: "100%", padding: "10px", borderRadius: "10px", fontWeight: 600, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.25)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.15)"}>
-            + Copo de 250ml
-          </button>
-        </div>
+          <div className="quick-action-text">
+            <span className="quick-action-label">Refeição</span>
+            <span className="quick-action-sub">Adicionar macros</span>
+          </div>
+        </a>
+
+        <button onClick={handleAddWater} className="quick-action-card" style={{ textAlign: "left" }}>
+          <div className="quick-action-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z" />
+            </svg>
+          </div>
+          <div className="quick-action-text">
+            <span className="quick-action-label">Beber Água</span>
+            <span className="quick-action-sub">Copão de +250ml</span>
+          </div>
+        </button>
       </div>
 
       {/* Weekly Summary */}
@@ -265,21 +285,45 @@ export default function DashboardPage() {
             </div>
 
             {/* Weekly Progress Chart */}
-            <div style={{ display: "flex", gap: 6, marginTop: 16, marginBottom: 20 }}>
-              {Array.from({ length: Math.max(weekStats.workoutsGoal || 3, weekStats.workoutsCount || 0, 1) }).map((_, i) => (
-                <div key={i} style={{
-                  height: 10, flex: 1, borderRadius: 6,
-                  background: i < (weekStats.workoutsCount || 0) ? "var(--primary)" : "rgba(255,255,255,0.06)",
-                  boxShadow: i < (weekStats.workoutsCount || 0) ? "0 0 10px rgba(239, 68, 68, 0.3)" : "none",
-                  transition: "all 0.3s ease"
-                }} />
-              ))}
+            <div style={{ width: "100%", height: 260, marginTop: 16, marginBottom: 20 }}>
+              {weekStats.chartData && weekStats.chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={weekStats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <XAxis
+                      dataKey="date"
+                      stroke="#9ca3af"
+                      fontSize={12}
+                      tickFormatter={(val) => {
+                        const d = new Date(val + "T00:00:00");
+                        const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+                        return days[d.getDay()];
+                      }}
+                    />
+                    <YAxis stroke="#9ca3af" fontSize={12} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
+                      labelFormatter={(l) => new Date(l + "T00:00:00").toLocaleDateString("pt-BR", { day: '2-digit', month: 'short' })}
+                      formatter={(val: number) => [`${val} min`, "Treino"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="minutes"
+                      stroke="var(--primary)"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: "var(--primary)", strokeWidth: 2, stroke: "#111" }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13, border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 12 }}>
+                  Sem dados de treino para gráfico
+                </div>
+              )}
             </div>
 
-            <div className="cta-row">
-              <a className="btn secondary" href="/meals">Adicionar refeição</a>
-              <a className="btn secondary" href="/workouts">Registrar treino</a>
-            </div>
+
+
           </div>
         </div>
         <div className="dashboard-side">

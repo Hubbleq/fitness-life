@@ -170,6 +170,7 @@ class ProfileBase(BaseModel):
     weight_kg: int
     activity_level: ActivityLevel
     goal: GoalType
+    avatar_url: str | None = None
 
     @field_validator("sex", mode="before")
     @classmethod
@@ -286,9 +287,14 @@ class RecommendationOut(BaseModel):
     weekly_workouts_goal: int
 
 
+class DailyWorkoutStat(BaseModel):
+    date: date
+    minutes: int
+
 class WeeklySummaryOut(BaseModel):
     week_start: date
     week_end: date
     workouts_count: int
     workouts_goal: int
     total_minutes: int
+    chart_data: list[DailyWorkoutStat]

@@ -28,6 +28,7 @@ class Profile(Base):
     weight_kg = Column(Integer, nullable=False)
     activity_level = Column(String, nullable=False)  # sedentary|light|moderate|active|athlete
     goal = Column(String, nullable=False)  # cut|maintain|bulk
+    avatar_url = Column(String, nullable=True)
 
     user = relationship("User", back_populates="profile")
 

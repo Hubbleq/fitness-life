@@ -227,7 +227,7 @@ export default function WorkoutsPage() {
         <div className="hero-banner-content">
           <span className="eyebrow">TREINAMENTO</span>
           <h1>Treinos</h1>
-          <p className="page-subtitle">{workouts.length} concluídos</p>
+          <p className="page-subtitle">{workouts.filter(w => w.is_completed).length} concluído{workouts.filter(w => w.is_completed).length === 1 ? "" : "s"}</p>
         </div>
         <div className="hero-banner-actions" style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "16px" }}>
           <button onClick={() => setShowForm(true)}>+ Novo treino</button>

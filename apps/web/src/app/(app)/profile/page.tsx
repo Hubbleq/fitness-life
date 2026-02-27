@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, authHeader, getToken } from "../../../lib/api";
 
@@ -43,6 +43,8 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState("moderate");
   const [goal, setGoal] = useState("maintain");
   const [message, setMessage] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const bmr = calculateBmr(sex, Number(weightKg), Number(heightCm), Number(age));
   const caloriesTarget = Math.round(bmr * activityMultiplier(activity) * goalFactor(goal));
@@ -59,6 +61,7 @@ export default function ProfilePage() {
           setName(data.name || ""); setSex(data.sex); setAge(data.age);
           setHeightCm(data.height_cm); setWeightKg(data.weight_kg);
           setActivity(data.activity_level); setGoal(data.goal);
+          setAvatarUrl(data.avatar_url || null);
         }
       } catch (err: any) { setMessage(err.message || "Erro ao carregar perfil"); }
     };
@@ -71,68 +74,156 @@ export default function ProfilePage() {
       const token = getToken();
       await apiFetch("/fitness/profile", {
         method: "PUT", headers: authHeader(token),
-        body: JSON.stringify({ name, sex, age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg), activity_level: activity, goal }),
+        body: JSON.stringify({ name, sex, age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg), activity_level: activity, goal, avatar_url: avatarUrl }),
       });
       setMessage("Perfil salvo com sucesso");
     } catch (err: any) { setMessage(err.message || "Erro ao salvar perfil"); }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
+        let { width, height } = img;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        setAvatarUrl(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      if (ev.target?.result) img.src = ev.target.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <main className="fade-in">
-      <div className="page-header">
-        <div>
-          <span className="eyebrow">Seu perfil</span>
-          <h1>Perfil</h1>
-          <p className="page-subtitle">Atualize seus dados para manter as metas corretas.</p>
+    <main className="fade-in profile-page-wrapper">
+      <div className="profile-header surface-card glow-neon-sm" style={{ backdropFilter: "blur(20px)", background: "rgba(17, 17, 17, 0.6)", marginBottom: 24 }}>
+        <div className="profile-avatar-container" style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 0" }}>
+          <div
+            className="avatar-circle enhanced-avatar"
+            onClick={handleAvatarClick}
+            title="Alterar foto de perfil"
+            style={{
+              width: 100, height: 100, borderRadius: "50%", cursor: "pointer",
+              overflow: "hidden", position: "relative", border: "2px solid rgba(255,255,255,0.1)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+            }}
+          >
+            <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" style={{ display: "none" }} />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span className="avatar-text" style={{ fontSize: 32 }}>{name ? name.substring(0, 2).toUpperCase() : "FL"}</span>
+            )}
+            <div className="avatar-hover-overlay" style={{
+              position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              opacity: 0, transition: "opacity 0.2s ease", color: "#fff", backdropFilter: "blur(2px)"
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style={{ marginBottom: 4 }}><path d="M4 4h3l2-2h6l2 2h3c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><circle cx="12" cy="12" r="3.2" /></svg>
+              <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Alterar</span>
+            </div>
+          </div>
+          <div>
+            <span className="eyebrow" style={{ color: "var(--primary)" }}>Configurações de Conta</span>
+            <h1 style={{ fontSize: 28, margin: "4px 0 8px" }}>{name || "Seu Perfil"}</h1>
+            <p className="page-subtitle" style={{ margin: 0, fontSize: 14 }}>Personalize suas informações biológicas e métricas de atividade.</p>
+          </div>
         </div>
       </div>
 
-      <div className="split-grid">
-        <div className="form-section">
-          <h3>Dados pessoais</h3>
-          <div className="form-grid">
-            <div><label>Nome</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div>
+      <div className="split-grid" style={{ gap: 24 }}>
+        <div className="form-section surface-card" style={{ padding: 24, border: "1px solid rgba(255,255,255,0.05)" }}>
+          <h3 style={{ fontSize: 18, marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 12 }}>Dados Pessoais</h3>
+
+          <h4 className="profile-section-title" style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0 }}>Biológico</h4>
+          <div className="form-grid" style={{ marginBottom: 32, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16 }}>
+            <div className="input-group">
               <label>Sexo</label>
-              <select value={sex} onChange={(e) => setSex(e.target.value)}>
+              <select className="premium-input" value={sex} onChange={(e) => setSex(e.target.value)}>
                 <option value="male">Masculino</option>
                 <option value="female">Feminino</option>
               </select>
             </div>
-            <div><label>Idade</label><input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} /></div>
-            <div><label>Altura (cm)</label><input type="number" value={heightCm} onChange={(e) => setHeightCm(Number(e.target.value))} /></div>
-            <div><label>Peso (kg)</label><input type="number" value={weightKg} onChange={(e) => setWeightKg(Number(e.target.value))} /></div>
-            <div>
-              <label>Atividade</label>
-              <select value={activity} onChange={(e) => setActivity(e.target.value)}>
-                {activityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label>Objetivo</label>
-              <select value={goal} onChange={(e) => setGoal(e.target.value)}>
-                {goalOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+            <div className="input-group"><label>Idade (anos)</label><input className="premium-input" type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} /></div>
+            <div className="input-group"><label>Altura (cm)</label><input className="premium-input" type="number" value={heightCm} onChange={(e) => setHeightCm(Number(e.target.value))} /></div>
+            <div className="input-group"><label>Peso (kg)</label><input className="premium-input" type="number" value={weightKg} onChange={(e) => setWeightKg(Number(e.target.value))} /></div>
+          </div>
+
+          <h4 className="profile-section-title" style={{ fontSize: 14, color: "var(--text-muted)" }}>Objetivos</h4>
+          <div className="form-grid" style={{ gridTemplateColumns: "1fr", gap: 16 }}>
+            <div className="input-group"><label>Nome de exibição</label><input className="premium-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="input-group">
+                <label>Nível de Atividade</label>
+                <select className="premium-input" value={activity} onChange={(e) => setActivity(e.target.value)}>
+                  {activityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label>Principal Objetivo</label>
+                <select className="premium-input" value={goal} onChange={(e) => setGoal(e.target.value)}>
+                  {goalOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
             </div>
           </div>
-          <div className="form-actions">
-            <button onClick={handleSave}>Salvar perfil</button>
+          <div className="form-actions" style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 16 }}>
+            {message ? <span className="form-message fade-in" style={{ fontSize: 13, color: message.includes("Erro") ? "var(--error)" : "var(--success)" }}>{message}</span> : <span />}
+            <button className="btn-save-profile" onClick={handleSave} style={{ alignSelf: "flex-end", padding: "10px 24px", fontSize: 14 }}>
+              Salvar Alterações
+            </button>
           </div>
-          {message ? <p className="form-message">{message}</p> : null}
         </div>
 
-        <div className="surface-card highlight-card">
-          <strong>Resumo do plano</strong>
-          <ul className="summary-list">
-            <li className="summary-item"><span>Objetivo</span><strong>{goalLabel}</strong></li>
-            <li className="summary-item"><span>BMR estimado</span><strong>{bmr} kcal</strong></li>
-            <li className="summary-item"><span>Meta diária</span><strong>{caloriesTarget} kcal</strong></li>
-            <li className="summary-item"><span>Proteína sugerida</span><strong>{proteinTarget} g</strong></li>
+        <div className="surface-card highlight-card glow-neon-sm" style={{ backdropFilter: "blur(20px)", background: "rgba(17, 17, 17, 0.6)", alignSelf: "start", position: "sticky", top: 24, padding: 24 }}>
+          <strong style={{ fontSize: 18, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 12, display: "block" }}>Resumo Diário</strong>
+          <ul className="summary-list" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+            <li className="summary-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 14 }}>Metabolismo Basal</span>
+              <strong style={{ fontSize: 16 }}>{bmr} kcal</strong>
+            </li>
+            <li className="summary-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 14 }}>Meta de Proteína</span>
+              <strong style={{ fontSize: 16 }}>{proteinTarget} g</strong>
+            </li>
+            <li className="summary-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 14 }}>Foco do Plano</span>
+              <strong style={{ fontSize: 14, background: "rgba(255,255,255,0.1)", padding: "4px 8px", borderRadius: 4 }}>{goalLabel}</strong>
+            </li>
+            <li className="summary-item" style={{
+              background: "rgba(239, 68, 68, 0.08)", padding: 16, borderRadius: 12,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              border: "1px solid rgba(239, 68, 68, 0.2)", marginTop: 8
+            }}>
+              <span style={{ color: "var(--primary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Alvo Calórico Total</span>
+              <strong style={{ fontSize: 32, color: "#fff", lineHeight: 1 }}>{caloriesTarget} <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 400 }}>kcal/dia</span></strong>
+            </li>
           </ul>
-          <p className="muted-note">Esses valores são uma base inicial.</p>
-          <div className="cta-row">
-            <a className="btn secondary" href="/goals">Ajustar metas</a>
-            <a className="btn secondary" href="/dashboard">Ver painel</a>
+          <p className="muted-note" style={{ textAlign: "center", margin: "16px 0", fontSize: 12 }}>Esses valores são recalibrados automaticamente ao salvar.</p>
+          <div className="cta-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <a className="btn secondary" href="/goals" style={{ padding: "10px 0", fontSize: 13, textAlign: "center" }}>Ajustar Macros</a>
+            <a className="btn secondary" href="/dashboard" style={{ padding: "10px 0", fontSize: 13, textAlign: "center", background: "rgba(255,255,255,0.1)" }}>Voltar ao Painel</a>
           </div>
         </div>
       </div>

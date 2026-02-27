@@ -1,8 +1,27 @@
 "use client";
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 export default function MarketingPage() {
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-visible');
+          // Optionally unobserve if you only want it to fire once:
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
+    document.querySelectorAll('.reveal-up').forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div style={{ background: "#0c0c0c", minHeight: "100vh", color: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <style dangerouslySetInnerHTML={{
@@ -65,7 +84,7 @@ export default function MarketingPage() {
 
         {/* HERO SECTION */}
         <section className="hero-grid-m" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center', marginBottom: 120 }}>
-          <div>
+          <div className="reveal-up">
             <span className="section-eyebrow">FITNESS HUB</span>
             <h1 className="hero-title-m">
               Treino e dieta organizados para você manter o <span>foco todos os dias.</span>
@@ -88,13 +107,13 @@ export default function MarketingPage() {
                 <span className="stat-label">Visão semanal</span>
                 <span className="stat-val">Tudo em um painel</span>
               </div>
-              <div className="stat-block">
+              <div className="stat-block reveal-up delay-300">
                 <span className="stat-label">Rotina</span>
                 <span className="stat-val">Resultados consistentes</span>
               </div>
             </div>
           </div>
-          <div className="hero-right-card">
+          <div className="hero-right-card reveal-up delay-200">
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0' }}>Seu dia em 3 passos</h3>
             <p style={{ fontSize: 13, color: '#71717a', margin: '0 0 24px 0' }}>Controle tudo sem perder tempo.</p>
 
@@ -114,14 +133,14 @@ export default function MarketingPage() {
         </section>
 
         {/* FEATURES GRID */}
-        <section style={{ textAlign: 'center', marginBottom: 160 }}>
+        <section className="reveal-up" style={{ textAlign: 'center', marginBottom: 160 }}>
           <span className="section-eyebrow">TUDO EM UM LUGAR</span>
           <h2 className="section-title">Feito para iniciantes e consistentes</h2>
           <p className="section-subtitle" style={{ marginBottom: 64 }}>Uma interface que guia você do primeiro cadastro até o hábito diário.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, textAlign: 'left' }}>
 
-            <div className="bento-card">
+            <div className="bento-card reveal-up">
               <div className="bento-icon">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
               </div>
@@ -131,7 +150,7 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            <div className="bento-card">
+            <div className="bento-card reveal-up delay-100">
               <div className="bento-icon">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
@@ -145,7 +164,7 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            <div className="bento-card">
+            <div className="bento-card reveal-up delay-200">
               <div className="bento-icon">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /><line x1="15" y1="21" x2="15" y2="9" /></svg>
               </div>
@@ -155,7 +174,7 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            <div className="bento-card">
+            <div className="bento-card reveal-up delay-300">
               <div className="bento-icon">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
               </div>
@@ -169,13 +188,13 @@ export default function MarketingPage() {
         </section>
 
         {/* FUNCIONALIDADES */}
-        <section style={{ textAlign: 'center', marginBottom: 160 }}>
+        <section className="reveal-up" style={{ textAlign: 'center', marginBottom: 160 }}>
           <span className="section-eyebrow">FUNCIONALIDADES</span>
           <h2 className="section-title">Controle total da sua rotina</h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, textAlign: 'left', marginTop: 64 }}>
 
-            <div className="func-card">
+            <div className="func-card reveal-up">
               <img src="/images/workouts-header.jpg" alt="Treino" className="func-img" />
               <div className="func-content">
                 <div className="func-icon-float">
@@ -186,7 +205,7 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            <div className="func-card">
+            <div className="func-card reveal-up delay-100">
               <img src="/images/meals.jfif" alt="Nutrição" className="func-img" />
               <div className="func-content">
                 <div className="func-icon-float">
@@ -202,7 +221,7 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            <div className="func-card">
+            <div className="func-card reveal-up delay-200">
               <img src="/images/tracking.jfif" alt="Evolução" className="func-img" />
               <div className="func-content">
                 <div className="func-icon-float">
@@ -217,12 +236,12 @@ export default function MarketingPage() {
         </section>
 
         {/* CTA BOTTOM */}
-        <section style={{ textAlign: 'center', margin: '0 auto', maxWidth: 600, padding: '80px 0' }}>
+        <section className="reveal-up" style={{ textAlign: 'center', margin: '0 auto', maxWidth: 600, padding: '80px 0' }}>
           <div style={{ width: 64, height: 64, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', margin: '0 auto 32px', boxShadow: '0 0 40px rgba(239, 68, 68, 0.3)' }}>
             <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
           </div>
-          <h2 className="section-title" style={{ fontSize: 32 }}>Comece sua transformação <span style={{ color: '#ef4444' }}>agora</span></h2>
-          <p className="section-subtitle" style={{ marginBottom: 40 }}>Cadastre-se em menos de 2 minutos e tenha seu plano fitness personalizado.</p>
+          <h2 className="section-title reveal-up" style={{ fontSize: 32 }}>Comece sua transformação <span style={{ color: '#ef4444' }}>agora</span></h2>
+          <p className="section-subtitle reveal-up delay-100" style={{ marginBottom: 40 }}>Cadastre-se em menos de 2 minutos e tenha seu plano fitness personalizado.</p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Link href="/register" className="btn-red" style={{ fontSize: 15, padding: '16px 36px', width: 'fit-content' }}>
               Criar conta grátis <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>

@@ -373,6 +373,7 @@ def weekly_summary(
             models.Workout.user_id == current_user.id,
             models.Workout.date >= week_start,
             models.Workout.date <= week_end,
+            models.Workout.is_completed == True,
         )
         .all()
     )
@@ -385,12 +386,21 @@ def weekly_summary(
 
     _, _, weekly_goal = workout_recommendation(profile.goal, profile.activity_level)
 
+    chart_data = []
+    from datetime import timedelta
+    for i in range(7):
+        current_date = week_start + timedelta(days=i)
+        daily_workouts = [w for w in workouts if w.date == current_date]
+        daily_minutes = sum(w.duration for w in daily_workouts)
+        chart_data.append({"date": current_date, "minutes": daily_minutes})
+
     return schemas.WeeklySummaryOut(
         week_start=week_start,
         week_end=week_end,
         workouts_count=workouts_count,
         workouts_goal=weekly_goal,
         total_minutes=total_minutes,
+        chart_data=chart_data
     )
 
 from pydantic import BaseModel
