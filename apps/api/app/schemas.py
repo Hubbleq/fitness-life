@@ -181,6 +181,7 @@ class ProfileBase(BaseModel):
     activity_level: ActivityLevel
     goal: GoalType
     avatar_url: str | None = None
+    health_conditions: str | None = None
 
     @field_validator("sex", mode="before")
     @classmethod
@@ -238,6 +239,7 @@ class UserRegister(BaseModel):
     weight_kg: int | None = None
     activity_level: ActivityLevel | None = None
     goal: GoalType | None = None
+    health_conditions: str | None = None
 
     @field_validator("sex", mode="before")
     @classmethod

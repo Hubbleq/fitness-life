@@ -102,10 +102,14 @@ async def chat_groq(
     if profile:
         # Escape user data to prevent context injection
         profile_name = escape_user_content(str(profile.name or 'Sem nome'))[:100]
+        health_info = ""
+        if profile.health_conditions:
+            health_info = f", Condições de Saúde: {escape_user_content(str(profile.health_conditions))}"
+            
         context_parts.append(
             f"PERFIL DO USUÁRIO: {profile_name}, {profile.age} anos, "
             f"Sexo: {profile.sex}, Peso: {profile.weight_kg}kg, Altura: {profile.height_cm}cm, "
-            f"Objetivo: {profile.goal}, Nível de Atividade: {profile.activity_level}."
+            f"Objetivo: {profile.goal}, Nível de Atividade: {profile.activity_level}{health_info}."
         )
 
     if goal:

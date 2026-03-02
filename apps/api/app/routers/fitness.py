@@ -478,6 +478,20 @@ def suggest_workout(
         .all()
     )
 
+    profile = db.query(models.Profile).filter(models.Profile.user_id == current_user.id).first()
+    health_context = ""
+    if profile and profile.health_conditions:
+        health_context = f"""
+!!! ATENÇÃO CRÍTICA MÉDICA !!!
+O usuário possui as seguintes CONDIÇÕES DE SAÚDE e RESTRIÇÕES: "{profile.health_conditions}"
+
+VOCÊ É OBRIGADO A SEGUIR ESTAS DIRETRIZES GERAIS:
+1. Se houver Dor na Lombar/Costas: PROIBIDO Agachamento Livre, Terra, Remada Curvada Livre. Sugira máquinas com apoio nas costas.
+2. Se houver Dor no Joelho: PROIBIDO Agachamento pesado, Leg Press com muita amplitude, Extensora pesada. Sugira exercícios isométricos ou focados no quadril/posterior.
+3. Se houver Dor nos Ombros: PROIBIDO Elevação Lateral acima de 90 graus, Desenvolvimento pesado por trás da nuca. Sugira variações com halteres neutros.
+4. Adapte rigorosamente qualquer outra condição informada. A SEGURANÇA É PRIORIDADE ZERO.
+"""
+
     trained_muscles = set()
     for w in recent_workouts:
         for ex in w.exercises:
@@ -491,8 +505,9 @@ def suggest_workout(
         context_instruction = f"ATENÇÃO: O usuário já treinou os seguintes músculos nos últimos 7 dias: {muscles_str}. VOCÊ DEVE priorizar outros músculos e EVITAR a repetição direta do que já foi treinado."
 
     
-    prompt = f"""Você é um especialista em fitness. O usuário precisa de uma sugestão de treino.
+    prompt = f"""Você é um personal trainer especialista em biomecânica e saúde. O usuário precisa de uma sugestão de treino.
 {context_instruction}
+{health_context}
 
 Retorne um JSON válido correspondendo a este formato exato:
 {{
@@ -541,8 +556,24 @@ def suggest_meal(
         
     client = Groq(api_key=api_key)
     
-    prompt = f"""Você é um nutricionista. Sugira uma refeição baseada SOMENTE em INGREDIENTES SIMPLES e baratos do dia a dia.
-Para garantir variedade, ESCOLHA ALEATORIAMENTE uma combinação diferente a cada vez usando opções como: frango, atum, ovos, carne moída, patinho, aveia, batata doce, arroz, feijão, macarrão, salada, banana, maçã. Não repita sempre a mesma refeição de "Frango com Batata Doce". Seja criativo, mas mantenha acessível.
+    profile = db.query(models.Profile).filter(models.Profile.user_id == current_user.id).first()
+    health_context = ""
+    if profile and profile.health_conditions:
+        health_context = f"""
+!!! ATENÇÃO CRÍTICA NUTRICIONAL !!!
+O usuário possui as seguintes CONDIÇÕES DE SAÚDE e RESTRIÇÕES: "{profile.health_conditions}"
+
+VOCÊ É OBRIGADO A SEGUIR ESTAS REGRAS EXTREMAS:
+1. Se houver Diabetes: ZERO AÇÚCAR (nem mascavo ou mel). ZERO alimentos de alto índice glicêmico (como pão branco, tapioca pura, doces). Priorize carboidratos complexos (aveia, feijão, vegetais).
+2. Se houver Hipertensão: REDUZA O SÓDIO. Não sugira embutidos (peito de peru, presunto), não sugira enlatados comuns sem lavar (atum em água lavar bem, ou evite).
+3. Se houver Intolerância à Lactose: ZERO LEITE, QUEIJO OU WHEY CONCENTRADO.
+4. Se houver Alergia a Glúten/Celíaco: ZERO TRIGO, AVEIA (se não for sem glúten), MACARRÃO COMUM.
+5. Adapte de forma severa qualquer outra condição. 
+"""
+
+    prompt = f"""Você é um nutricionista clínico especialista. Sugira uma refeição baseada SOMENTE em INGREDIENTES SIMPLES e baratos do dia a dia.
+Para garantir variedade, ESCOLHA ALEATORIAMENTE uma combinação diferente a cada vez usando opções que se adequem às regras abaixo. Não repita sempre a mesma refeição padrão. Seja criativo, mas mantenha acessível.
+{health_context}
 
 Retorne um JSON válido correspondendo a este formato:
 {{

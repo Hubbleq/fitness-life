@@ -17,6 +17,12 @@ const goalOptions = [
   { value: "bulk", label: "Ganhar Massa (Bulking)" },
 ];
 
+const healthPredefinedTags = [
+  "Diabetes", "Hipertensão", "Dor na Lombar", "Problemas Cardíacos", "Asma",
+  "Gravidez", "Lactante", "Intolerância à Lactose", "Alergia a Glúten",
+  "Dor nos Joelhos", "Dor nos Ombros", "Colesterol Alto"
+];
+
 function calculateBmr(sex: string, weightKg: number, heightCm: number, age: number) {
   if (sex === "female") {
     return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
@@ -53,6 +59,10 @@ export default function RegisterPage() {
   const [weightKg, setWeightKg] = useState(75);
   const [activity, setActivity] = useState("moderate");
   const [goal, setGoal] = useState("maintain");
+
+  const [selectedHealthTags, setSelectedHealthTags] = useState<string[]>([]);
+  const [otherHealthConditions, setOtherHealthConditions] = useState("");
+
   const [message, setMessage] = useState("");
 
   const bmr = calculateBmr(sex, weightKg, heightCm, age);
@@ -80,12 +90,14 @@ export default function RegisterPage() {
       return;
     }
     try {
+      const finalHealthConditions = [...selectedHealthTags, otherHealthConditions.trim()].filter(Boolean).join(", ");
       const data = await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify({
           name, email, password, sex,
           age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg),
           activity_level: activity, goal,
+          health_conditions: finalHealthConditions || undefined,
         }),
       });
       localStorage.setItem("token", data.access_token);
@@ -182,6 +194,54 @@ export default function RegisterPage() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+            </div>
+            <div style={{ gridColumn: "1 / -1", marginTop: "12px" }}>
+              <label>Condições de Saúde e Restrições (Opcional)</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "8px 0 16px" }}>
+                {healthPredefinedTags.map(tag => {
+                  const isSelected = selectedHealthTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedHealthTags(prev =>
+                          isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "999px",
+                        border: `1px solid ${isSelected ? "var(--primary)" : "var(--border)"}`,
+                        background: isSelected ? "rgba(239, 68, 68, 0.1)" : "transparent",
+                        color: isSelected ? "var(--primary)" : "var(--text-muted)",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+              <label style={{ fontSize: "14px", marginTop: "8px", display: "block" }}>Outras condições ou observações:</label>
+              <textarea
+                value={otherHealthConditions}
+                onChange={(e) => setOtherHealthConditions(e.target.value)}
+                placeholder="Ex: Cirurgia recente no joelho, toma remédio X..."
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  minHeight: "80px",
+                  resize: "vertical"
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>A IA adaptará rigorosamente seus treinos e refeições com base nesses itens.</span>
             </div>
           </div>
 

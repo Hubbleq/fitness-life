@@ -18,6 +18,12 @@ const goalOptions = [
   { value: "bulk", label: "Ganhar massa" },
 ];
 
+const healthPredefinedTags = [
+  "Diabetes", "Hipertensão", "Dor na Lombar", "Problemas Cardíacos", "Asma",
+  "Gravidez", "Lactante", "Intolerância à Lactose", "Alergia a Glúten",
+  "Dor nos Joelhos", "Dor nos Ombros", "Colesterol Alto"
+];
+
 function calculateBmr(sex: string, weightKg: number, heightCm: number, age: number) {
   if (sex === "female") return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
   return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5);
@@ -42,6 +48,10 @@ export default function ProfilePage() {
   const [weightKg, setWeightKg] = useState(75);
   const [activity, setActivity] = useState("moderate");
   const [goal, setGoal] = useState("maintain");
+
+  const [selectedHealthTags, setSelectedHealthTags] = useState<string[]>([]);
+  const [otherHealthConditions, setOtherHealthConditions] = useState("");
+
   const [message, setMessage] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +71,15 @@ export default function ProfilePage() {
           setName(data.name || ""); setSex(data.sex); setAge(data.age);
           setHeightCm(data.height_cm); setWeightKg(data.weight_kg);
           setActivity(data.activity_level); setGoal(data.goal);
+
+          if (data.health_conditions) {
+            const parsed = data.health_conditions.split(",").map((s: string) => s.trim());
+            const matchedTags = parsed.filter((p: string) => healthPredefinedTags.includes(p));
+            const unmatched = parsed.filter((p: string) => !healthPredefinedTags.includes(p));
+            setSelectedHealthTags(matchedTags);
+            setOtherHealthConditions(unmatched.join(", "));
+          }
+
           setAvatarUrl(data.avatar_url || null);
         }
       } catch (err: any) { setMessage(err.message || "Erro ao carregar perfil"); }
@@ -71,10 +90,16 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!name.trim()) { setMessage("Informe seu nome"); return; }
     try {
+      const finalHealthConditions = [...selectedHealthTags, otherHealthConditions.trim()].filter(Boolean).join(", ");
+
       const token = getToken();
       await apiFetch("/fitness/profile", {
         method: "PUT", headers: authHeader(token),
-        body: JSON.stringify({ name, sex, age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg), activity_level: activity, goal, avatar_url: avatarUrl }),
+        body: JSON.stringify({
+          name, sex, age: Number(age), height_cm: Number(heightCm), weight_kg: Number(weightKg),
+          activity_level: activity, goal, avatar_url: avatarUrl,
+          health_conditions: finalHealthConditions || undefined
+        }),
       });
       setMessage("Perfil salvo com sucesso");
     } catch (err: any) { setMessage(err.message || "Erro ao salvar perfil"); }
@@ -187,6 +212,46 @@ export default function ProfilePage() {
                   {goalOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
+            </div>
+            <div className="input-group" style={{ marginTop: 8 }}>
+              <label>Condições de Saúde e Restrições</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "8px 0 16px" }}>
+                {healthPredefinedTags.map(tag => {
+                  const isSelected = selectedHealthTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedHealthTags(prev =>
+                          isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "999px",
+                        border: `1px solid ${isSelected ? "var(--primary)" : "var(--border)"}`,
+                        background: isSelected ? "rgba(239, 68, 68, 0.1)" : "transparent",
+                        color: isSelected ? "var(--primary)" : "var(--text-muted)",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+              <label style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: 4, display: "block" }}>Outras observações:</label>
+              <textarea
+                className="premium-input"
+                value={otherHealthConditions}
+                onChange={(e) => setOtherHealthConditions(e.target.value)}
+                placeholder="Ex: Cirurgia recente, Remédios..."
+                style={{ minHeight: "80px", resize: "vertical", padding: "12px", width: "100%" }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>A IA adaptará vigorosamente as recomendações com base no que foi informado.</span>
             </div>
           </div>
           <div className="form-actions" style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 16 }}>
