@@ -9,6 +9,7 @@ from .limiter import limiter
 from .routers import auth as auth_router
 from .routers import fitness as fitness_router
 from .routers import chat as chat_router
+from .routers import catalog as catalog_router
 
 app = FastAPI(title="fitness-life api")
 
@@ -49,4 +50,6 @@ def health():
 app.include_router(auth_router.router)
 app.include_router(fitness_router.router)
 app.include_router(chat_router.router)
+app.include_router(catalog_router.router)  # Public catalog - no auth required
+app.include_router(catalog_router.router)
 

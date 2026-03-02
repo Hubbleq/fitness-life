@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from .db import get_db
 from . import models
 
@@ -57,3 +58,86 @@ def get_current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
+
+
+def set_rls_context(db: Session, email: str) -> None:
+    """
+    Set the RLS context for the current database session.
+    This allows Row Level Security policies to filter data by user.
+
+    Args:
+        db: Database session
+        email: User's email from JWT token
+    """
+    # Escape single quotes to prevent SQL injection
+    safe_email = email.replace("'", "''")
+    db.execute(text(f"SET request.jwt.claims = '{{\"sub\": \"{safe_email}\"}}'"))
+
+
+def get_db_with_rls(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+) -> Session:
+    """
+    Dependency that sets RLS context before returning the db session.
+    Use this instead of get_db when RLS is enabled on the database.
+
+    Usage:
+        @router.get("/meals")
+        def list_meals(db: Session = Depends(get_db_with_rls)):
+            # RLS is now active, queries will be filtered by user
+            return db.query(Meal).all()
+    """
+    set_rls_context(db, current_user.email)
+    return db
+
+
+def set_rls_context(db: Session, email: str) -> None:
+    """
+    Set the Row Level Security context for the current database session.
+    This allows RLS policies to filter data based on the authenticated user.
+
+    Args:
+        db: SQLAlchemy session
+        email: User's email from the JWT token
+    """
+    # Escape single quotes to prevent SQL injection
+    safe_email = email.replace("'", "''")
+    db.execute(text(f"SET request.jwt.claims = '{{\"sub\": \"{safe_email}\"}}'"))
+
+
+def get_db_with_rls(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Session:
+    """
+    Dependency that sets RLS context before returning the db session.
+    Use this instead of get_db when you want RLS policies to be enforced.
+
+    Example:
+        @router.get("/meals")
+        def list_meals(db: Session = Depends(get_db_with_rls)):
+            # RLS is now active - queries will be filtered by user
+            return db.query(Meal).all()
+    """
+    set_rls_context(db, current_user.email)
+    return db
+
+
+def get_current_user_with_rls(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> tuple[models.User, Session]:
+    """
+    Dependency that returns both the current user and a db session with RLS context set.
+    Useful when you need both the user object and RLS-protected database access.
+
+    Example:
+        @router.get("/meals")
+        def list_meals(current_user: User, db: Session = Depends(get_current_user_with_rls)):
+            # Both user and RLS context are available
+            return db.query(Meal).all()
+    """
+    user = get_current_user(credentials, db)
+    set_rls_context(db, user.email)
+    return user, db

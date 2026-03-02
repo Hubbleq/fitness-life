@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, Text, TIMESTAMP
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from .db import Base
 
 
@@ -96,3 +97,139 @@ class WaterLog(Base):
     amount_ml = Column(Integer, nullable=False)
 
     user = relationship("User")
+
+
+# ============================================================================
+# PUBLIC CATALOG MODELS (No sensitive user data)
+# ============================================================================
+
+class ExerciseCatalog(Base):
+    """Public catalog of exercises - readable without authentication."""
+    __tablename__ = "exercises_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    muscle_group = Column(String(50), nullable=False)
+    equipment = Column(String(100), nullable=True)
+    description = Column(Text, nullable=True)
+    instructions = Column(Text, nullable=True)
+    difficulty = Column(String(20), default="intermediate")
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class MealCatalog(Base):
+    """Public catalog of meals/foods - readable without authentication."""
+    __tablename__ = "meals_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False)
+    calories = Column(Integer, nullable=True)
+    protein = Column(Integer, nullable=True)
+    carbs = Column(Integer, nullable=True)
+    fat = Column(Integer, nullable=True)
+    serving_size = Column(String(100), nullable=True)
+    image_url = Column(String(500), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class WorkoutTemplate(Base):
+    """Public workout templates - readable without authentication."""
+    __tablename__ = "workout_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    difficulty = Column(String(20), default="intermediate")
+    duration_minutes = Column(Integer, nullable=True)
+    goal = Column(String(50), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    template_exercises = relationship("WorkoutTemplateExercise", back_populates="template", cascade="all, delete-orphan")
+
+
+class WorkoutTemplateExercise(Base):
+    """Exercises within a workout template."""
+    __tablename__ = "workout_template_exercises"
+
+    id = Column(Integer, primary_key=True, index=True)
+    template_id = Column(Integer, ForeignKey("workout_templates.id", ondelete="CASCADE"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises_catalog.id"), nullable=True)
+    sets = Column(Integer, nullable=True)
+    reps = Column(String(50), nullable=True)
+    rest_seconds = Column(Integer, nullable=True)
+    order_index = Column(Integer, default=0)
+
+    template = relationship("WorkoutTemplate", back_populates="template_exercises")
+    exercise = relationship("ExerciseCatalog")
+
+
+# ============================================================================
+# PUBLIC CATALOG MODELS (No user data)
+# ============================================================================
+
+class ExerciseCatalog(Base):
+    """Public catalog of exercises - no authentication required to read"""
+    __tablename__ = "exercises_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    muscle_group = Column(String(50), nullable=False)
+    equipment = Column(String(100), nullable=True)
+    description = Column(Text, nullable=True)
+    instructions = Column(Text, nullable=True)
+    difficulty = Column(String(20), default='intermediate')
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class MealCatalog(Base):
+    """Public catalog of meals - no authentication required to read"""
+    __tablename__ = "meals_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False)
+    calories = Column(Integer, nullable=True)
+    protein = Column(Integer, nullable=True)
+    carbs = Column(Integer, nullable=True)
+    fat = Column(Integer, nullable=True)
+    serving_size = Column(String(100), nullable=True)
+    image_url = Column(String(500), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class WorkoutTemplate(Base):
+    """Public workout templates - no authentication required to read"""
+    __tablename__ = "workout_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    difficulty = Column(String(20), default='intermediate')
+    duration_minutes = Column(Integer, nullable=True)
+    goal = Column(String(50), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    template_exercises = relationship("WorkoutTemplateExercise", back_populates="template", cascade="all, delete-orphan")
+
+
+class WorkoutTemplateExercise(Base):
+    """Exercises within a workout template"""
+    __tablename__ = "workout_template_exercises"
+
+    id = Column(Integer, primary_key=True, index=True)
+    template_id = Column(Integer, ForeignKey("workout_templates.id", ondelete="CASCADE"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises_catalog.id"), nullable=True)
+    sets = Column(Integer, nullable=True)
+    reps = Column(String(50), nullable=True)
+    rest_seconds = Column(Integer, nullable=True)
+    order_index = Column(Integer, nullable=True)
+
+    template = relationship("WorkoutTemplate", back_populates="template_exercises")
+    exercise = relationship("ExerciseCatalog")
